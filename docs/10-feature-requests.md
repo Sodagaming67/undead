@@ -47,3 +47,16 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** About 2,200 action words and phrases (up from about 700), including slang and common misspellings. Typo forgiveness ("atack", "barricde", "sneek", "hosptal" still work). Understands "don't / not / instead of" ("don't fight, just hide" = hide). Blocks superpowers and cheats (teleport, god mode, kill all the zombies, it was a dream...) with a "nice try" message and lets you retype. Checks your backpack, so "attack with my katana" or "use my shotgun" is refused if you don't have it. Checks that survivors you talk to are actually there. Says so if you try to go somewhere you already are.
 **Files changed:** `src/words.js` (new), `src/stories.js`, `index.html`
 **Design note:** → [Session 1 — Trick-Proof Word-Finder](09-design-decisions.md)
+
+### #5 — Stores and Rooms, Roads, Vehicles, Realistic Survivors
+
+**Asked:** "Give each structure items, connect each area by roads (farther = more likely to get caught), make the side characters more realistic and less kid-like and able to die, and make a lot more things possible like driving into malls and hiding in specific stores." Follow-ups: "If I have a car or skateboard, tell me, and let me drive or ride it", "Vehicles should only come from roads or from side characters", and "There is a bug with starting the game."
+**Status:** ✓ Done
+**What was built:**
+- Every place now has 3 to 5 stores or rooms (like the Samurai Shack, Hartley's fitting rooms, Pharmacy, Armory, Hunting Blind), each with its own description, items, and actions it is good for.
+- 13 named roads connect the 10 places. You can travel anywhere; the game finds the shortest route and long trips are much more dangerous.
+- 4 vehicles (car, motorcycle, mountain bike, skateboard) can only be found on roads (on a trip or by "search the street for a car") or from survivors. The panel lists them with how to use them. Faster vehicles make long trips safer. A car can crash through the doors of any building, but it gets wrecked.
+- Survivors were rewritten as realistic adults with full names. Two new ones were added (Al Brennan and Rita Okafor). They have 2 hearts each, can take hits for you, and can die.
+- Bug: the game crashed when starting a turn because it was opened mid-update (new town file with the old game screen). Fixed by finishing the update, and checked with a real browser playthrough.
+**Files changed:** `src/world.js`, `src/words.js`, `src/stories.js`, `src/scenes/GameScene.js`, `src/scenes/SetupScene.js`, `src/main.js`
+**Design note:** → [Session 1 — Stores, Roads, Vehicles](09-design-decisions.md)

@@ -4,7 +4,7 @@ const MORE_WORDS = {
   drive: ['pickup', 'pickup truck', 'minivan', 'suv', 'sedan', 'convertible', 'sports car', 'race car', 'ice cream truck', 'fire truck', 'firetruck', 'garbage truck', 'dump truck', 'monster truck', 'semi', 'big rig', 'school bus', 'moped', 'dirt bike', 'atv', 'quad', 'four wheeler', 'snowmobile', 'boat', 'jet ski', 'speedboat', 'canoe', 'kayak', 'raft', 'accelerate', 'gas it', 'step on it', 'hit the gas', 'pedal to the metal', 'rev', 'vroom', 'zoom off', 'burn out', 'start the engine', 'turn the key', 'buckle up', 'seatbelt', 'get in the car', 'hop in', 'jump in the car', 'get in the truck', 'carjack', 'steal a car', 'steal the car', 'borrow a car', 'run them over', 'run over', 'ram them', 'plow through', 'drive through', 'crash through', 'swerve', 'reverse', 'wheels', 'tires', 'drvie', 'dirve', 'drve'],
   climb: ['climb onto', 'climb over', 'up a', 'up to the roof', 'up on', 'get on top', 'stand on', 'get on the roof', 'high ground', 'higher ground', 'get high up', 'tallest', 'top floor', 'top shelf', 'second floor', '2nd floor', 'third floor', 'escalator', 'scaffolding', 'crane', 'telephone pole', 'power line', 'lamppost', 'street light', 'traffic light', 'stop sign', 'bus stop', 'car roof', 'truck roof', 'on the car', 'on the truck', 'van roof', 'trampoline', 'vault', 'pole vault', 'jump over', 'hop over', 'leap over', 'scale the wall', 'rock climb', 'bouldering', 'grapple', 'grappling hook', 'swing on', 'vine', 'tarzan', 'rafters', 'ceiling', 'light fixture', 'chandelier', 'bunk bed', 'top bunk', 'stand on the table', 'counter', 'bookcase', 'tree house', 'treehouse', 'haystack', 'ledge', 'window ledge', 'gutter', 'drainpipe', 'chimney', 'satellite dish', 'sign', 'statue', 'fountain', 'mountain', 'clime', 'climbe', 'clim', 'clmb', 'clinb', 'climd'],
   hide: ['take cover', 'find cover', 'hide out', 'hideout', 'go into hiding', 'conceal', 'stay hidden', 'stay out of sight', 'out of sight', 'keep out of sight', 'lurk', 'hunker down', 'hunker', 'huddle', 'curl up', 'ball up', 'squeeze into', 'squeeze under', 'cram into', 'slide under', 'roll under', 'get under', 'under the table', 'under the bed', 'under the car', 'behind the door', 'behind the counter', 'behind the couch', 'behind a car', 'behind a tree', 'in the closet', 'in the trunk', 'in the bathroom', 'in the shower', 'in the vent', 'in a box', 'cardboard box', 'laundry basket', 'pile of clothes', 'pile of leaves', 'leaves', 'mud', 'bushes', 'hedge', 'tall grass', 'grass', 'corn field', 'cornfield', 'hay', 'trash can', 'garbage can', 'recycling bin', 'bin', 'barrel', 'freezer', 'oven', 'dryer', 'washing machine', 'dishwasher', 'toy box', 'toybox', 'pillow fort', 'blanket', 'under the covers', 'sleeping bag', 'camo', 'ghillie', 'disguise myself', 'pretend i am a zombie', 'pretend to be a zombie', 'act dead', 'fake dead', 'fake my death', 'lie still', 'lay still', 'zombie costume', 'costume', 'mask', 'smell like a zombie', 'zombie blood', 'guts', 'roll in', 'safe spot', 'safe place', 'safe zone', 'fallout shelter', 'storm shelter', 'cellar', 'crawlspace', 'loft', 'garage', 'cabin', 'igloo', 'tunnel', 'manhole', 'culvert', 'under the bridge', 'bridge', 'pond', 'lake', 'creek', 'river', 'underwater', 'swim', 'dive', 'submerge', 'hyde', 'hidee', 'hied', 'hidde', 'hidin'],
-  sneak: ['sneaky', 'stealthy', 'stealthily', 'sneakily', 'quietly', 'silently', 'noiselessly', 'on tiptoes', 'on my tiptoes', 'tippy toes', 'tippy toe', 'crawl past', 'creep past', 'tiptoe past', 'walk past', 'slowly walk', 'walk slowly', 'walk quietly', 'move quietly', 'move slowly', 'move carefully', 'step carefully', 'watch my step', 'barefoot', 'take off my shoes', 'socks', 'belly crawl', 'army crawl', 'commando crawl', 'low crawl', 'stay in the shadows', 'in the shadows', 'dark corner', 'sneak around', 'go around them', 'around them', 'circle around', 'flank', 'sidestep', 'duck past', 'duck under', 'slip through', 'squeeze past', 'weave through', 'sneak through', 'sneak out', 'sneak away', 'slink', 'skulk', 'glide', 'stalk', 'spy', 'scout', 'peek', 'peep', 'observe', 'watch them', 'study them', 'wait for them to pass', 'wait until they leave', 'wait it out', 'let them pass', 'let them walk by', 'be quiet', 'keep quiet', 'stay quiet', 'zip my lips', 'not a peep', 'no sound', 'whisper', 'muffle', 'mute my phone', 'silence my phone', 'turn off my phone', 'phone on silent', 'look out', 'look out the window', 'peek out', 'sneek', 'sneik', 'snek', 'sneakk', 'snaek', 'sneack'],
+  sneak: ['sneaky', 'stealthy', 'stealthily', 'sneakily', 'quietly', 'silently', 'noiselessly', 'on tiptoes', 'on my tiptoes', 'tippy toes', 'tippy toe', 'crawl past', 'creep past', 'tiptoe past', 'walk past', 'slowly walk', 'walk slowly', 'walk quietly', 'move quietly', 'move slowly', 'move carefully', 'step carefully', 'watch my step', 'barefoot', 'take off my shoes', 'socks', 'belly crawl', 'army crawl', 'commando crawl', 'low crawl', 'stay in the shadows', 'in the shadows', 'dark corner', 'sneak around', 'go around them', 'around them', 'circle around', 'flank', 'sidestep', 'duck past', 'duck under', 'slip through', 'squeeze past', 'weave through', 'sneak through', 'sneak out', 'sneak away', 'slink', 'skulk', 'glide', 'stalk', 'spy', 'scout', 'peek', 'peep', 'observe', 'watch them', 'study them', 'wait for them to pass', 'wait until they leave', 'until they leave', 'until they pass', 'until they go', 'until it leaves', 'until it passes', 'wait quietly', 'wait silently', 'wait in silence', 'wait it out', 'let them pass', 'let them walk by', 'be quiet', 'keep quiet', 'stay quiet', 'zip my lips', 'not a peep', 'no sound', 'whisper', 'muffle', 'mute my phone', 'silence my phone', 'turn off my phone', 'phone on silent', 'look out', 'look out the window', 'peek out', 'sneek', 'sneik', 'snek', 'sneakk', 'snaek', 'sneack'],
   barricade: ['barrier', 'barred', 'bar the door', 'bar the windows', 'lock up', 'lock down', 'lockdown', 'lock it', 'lock the', 'deadbolt', 'padlock', 'latch', 'chain lock', 'board up the windows', 'board the windows', 'nail boards', 'nail the door', 'nail it shut', 'plywood', 'wood planks', 'planks', 'lumber', 'sandbags', 'sandbag', 'pile furniture', 'move furniture', 'drag furniture', 'push the couch', 'push the fridge', 'push the dresser', 'push a table', 'block the door', 'block the window', 'block the entrance', 'block the stairs', 'block it', 'jam the door', 'wedge a chair', 'chair under the handle', 'doorstop', 'door stop', 'fridge in front', 'pile chairs', 'stack chairs', 'stack boxes', 'build a fort', 'build walls', 'build a barricade', 'build defenses', 'make a fort', 'make a wall', 'make walls', 'fort up', 'hole up', 'dig in', 'fortress', 'castle', 'home base', 'safe house', 'safehouse', 'spikes', 'barbed wire', 'fence off', 'close the door', 'close the windows', 'close the gate', 'shut the door', 'shut the windows', 'slam the door', 'hold the line', 'hold the fort', 'defend the house', 'defend the base', 'reinforce the door', 'strengthen', 'duct tape', 'cement', 'bricks', 'wall up', 'seal off', 'seal the', 'lock myself in', 'shutters', 'close the blinds', 'blinds', 'barrikade', 'baricade', 'barracade', 'barcade', 'barricaid', 'barakade'],
   trick: ['distraction', 'diversion', 'create a distraction', 'make a distraction', 'lure them', 'lure away', 'draw them away', 'draw them off', 'lead them off', 'attract', 'attract them', 'get their attention', 'make them follow', 'bait them', 'use bait', 'throw meat', 'throw food', 'throw a bottle', 'throw a shoe', 'throw my shoe', 'throw something', 'toss something', 'chuck a rock', 'pebble', 'bottle', 'glass bottle', 'tin can', 'soda can', 'pots and pans', 'bang pots', 'bang on', 'clang', 'ring a bell', 'doorbell', 'fire alarm', 'pull the fire alarm', 'set off', 'set off the alarm', 'honk the horn', 'blast music', 'play music', 'boombox', 'stereo', 'bluetooth speaker', 'phone alarm', 'ringtone', 'set an alarm', 'timer', 'alarm clock', 'turn on the tv', 'turn on the radio', 'molotov', 'gasoline', 'burn them', 'set fire', 'set them on fire', 'fireworks', 'firecrackers', 'sparklers', 'smoke bomb', 'smoke grenade', 'flash bang', 'flashbang', 'glow stick', 'glowstick', 'laser pointer', 'shine', 'blind them', 'strobe', 'reflect', 'trip them', 'trip wire', 'rope trap', 'net trap', 'pit trap', 'bear trap', 'snare', 'shoelaces', 'slippery', 'oil', 'grease', 'marbles', 'lego', 'legos', 'soap', 'bubbles', 'hairspray', 'air horn', 'yell over there', 'shout over there', 'throw my voice', 'fake noise', 'scarecrow', 'dummy', 'blow up', 'explosion', 'kaboom', 'boom', 'tnt', 'propane', 'outsmart', 'outwit', 'trick them', 'fool them', 'confuse them', 'play a trick', 'prank them', 'mess with them', 'scare them', 'scare them off', 'scare them away', 'spook', 'boo', 'jump scare', 'roar', 'growl', 'howl', 'bark', 'animal noises', 'zombie noises', 'groan like a zombie', 'moan like a zombie', 'distrack', 'destract', 'distact', 'disract', 'trik', 'firwork', 'firewerk'],
   call: ['call for backup', 'backup', 'call my mom', 'call my dad', 'call mom', 'call dad', 'call my parents', 'call home', 'dial', 'dial 911', 'ring', 'facetime', 'video call', 'group chat', 'send a text', 'send a message', 'snapchat', 'instagram', 'post online', 'social media', 'go live', 'discord', 'walkie talkie', 'cb radio', 'ham radio', 'radio for help', 'transmit', 'transmitter', 'frequency', 'channel', 'over and out', 'roger', 'come in', 'is anyone there', 'anyone there', 'anybody out there', 'help sign', 'write sos', 'spell sos', 'spell out', 'big sign', 'banner', 'flag', 'wave a flag', 'wave my arms', 'wave at the helicopter', 'wave down the helicopter', 'flag down', 'signal fire', 'smoke signals', 'light a signal', 'flare gun', 'shoot a flare', 'fire a flare', 'mirror signal', 'flash a light', 'morse code', 'get rescued', 'evacuation', 'airlift', 'helicopter rescue', 'military', 'soldiers', 'marines', 'government', 'fbi', 'swat', 'cops', 'firefighters', 'fire department', 'paramedics', 'news', 'reporter', 'tv station', 'holler for help', 'call out', 'shout out', 'yell out', 'reach out', 'contact survivors', 'other survivors', 'survivor camp', 'cal', 'caal', 'phnoe', 'raido', 'radoi'],
@@ -28,15 +28,15 @@ const PRONOUNS = ['them', 'it', 'they', 'him', 'her', 'its'];
 
 const PLACE_TYPOS = {
   house: ['hous', 'hom', 'my place'],
-  school: ['skool', 'scool', 'shcool', 'schol', 'cafeteria', 'gymnasium'],
-  park: ['parc', 'parck', 'swings', 'ice cream truck'],
-  gas: ['gas staton', 'gas stashun', 'gasstation', 'convenience store'],
+  school: ['skool', 'scool', 'shcool', 'schol'],
+  park: ['parc', 'parck'],
+  gas: ['gas staton', 'gas stashun', 'gasstation'],
   mall: ['shopping mall', 'shopping center', 'mal'],
   sports: ['sport store', 'sports store', 'sporting goods store'],
-  police: ['polise', 'pollice', 'poleece', 'police staton', 'jail'],
-  hospital: ['hosptal', 'hospitle', 'hopsital', 'hostpital', 'hospitol', 'hosiptal', 'helipad'],
-  woods: ['wods', 'forrest', 'forist', 'ranger shed'],
-  tower: ['radio towr', 'towr', 'towar', 'radio shack']
+  police: ['polise', 'pollice', 'poleece', 'police staton'],
+  hospital: ['hosptal', 'hospitle', 'hopsital', 'hostpital', 'hospitol', 'hosiptal'],
+  woods: ['wods', 'forrest', 'forist'],
+  tower: ['radio towr', 'towr', 'towar']
 };
 
 const CHEAT_WORDS = ['teleport', 'i fly', 'i can fly', 'fly away', 'fly up', 'start flying', 'sprout wings', 'grow wings', 'superpower', 'super power', 'super strength', 'super speed', 'laser eyes', 'laser vision', 'x ray vision', 'magic', 'magic spell', 'cast a spell', 'wizard', 'witch', 'wand', 'abracadabra', 'hocus pocus', 'god mode', 'godmode', 'cheat', 'cheat code', 'hacker', 'hack the game', 'hacks', 'admin', 'creative mode', 'respawn', 'extra life', 'extra lives', 'infinite', 'unlimited', 'invincible', 'invincibility', 'immortal', 'immortality', 'cant die', 'can t die', 'cannot die', 'never die', 'i win', 'win the game', 'i won', 'kill all the zombies', 'kill all zombies', 'kill every zombie', 'kill all of the zombies', 'kill the whole horde', 'destroy all', 'all the zombies die', 'every zombie dies', 'zombies all die', 'zombies disappear', 'make them disappear', 'zombies vanish', 'snap my fingers', 'thanos', 'infinity gauntlet', 'nuke', 'nuclear', 'atomic bomb', 'missile', 'rocket launcher', 'bazooka', 'minigun', 'army tank', 'drive a tank', 'fighter jet', 'jet fighter', 'time travel', 'go back in time', 'freeze time', 'stop time', 'rewind', 'reverse time', 'undo', 'make a wish', 'genie', 'three wishes', 'it was a dream', 'just a dream', 'it was all a dream', 'wake up from', 'cure everyone', 'cure all the zombies', 'cure the zombies', 'invisible', 'invisibility', 'shapeshift', 'transform into', 'turn into a dragon', 'dragon', 'unicorn', 'jetpack', 'portal', 'lightsaber', 'the force', 'force push', 'iron man', 'superman', 'hulk', 'spiderman', 'spider man', 'batman', 'captain america', 'thor', 'goku', 'kamehameha', 'naruto', 'pokemon', 'pikachu', 'summon', 'clone myself', 'robot army', 'giant robot', 'mecha', 'force field', 'forcefield', 'resurrect', 'revive myself', 'come back to life', 'one shot', 'instakill', 'insta kill', 'aimbot', 'noclip', 'no clip', 'dev mode', 'console command', 'delete the zombies', 'delete zombies', 'remove the zombies', 'turn off zombies', 'zombies are not real', 'zombies arent real', 'zombies aren t real', 'a million', 'a billion', 'a trillion', 'infinity'];
@@ -49,29 +49,41 @@ const CHEAT_REPLIES = [
 
 const FAKE_GEAR = {
   'gun': null, 'guns': null, 'shotgun': null, 'rifle': null, 'pistol': null, 'revolver': null, 'machine gun': null, 'ak47': null, 'ak 47': null, 'sniper': null, 'uzi': null,
-  'flamethrower': null, 'flame thrower': null, 'grenade': null, 'rocket': null, 'laser gun': null, 'ray gun': null, 'chainsaw': null, 'machete': null,
-  'knife': null, 'dagger': null, 'spear': null, 'armor suit': null, 'power armor': null,
+  'flamethrower': null, 'flame thrower': null, 'grenade': null, 'rocket': null, 'laser gun': null, 'ray gun': null, 'chainsaw': null,
+  'dagger': null, 'spear': null, 'armor suit': null, 'power armor': null,
   'sword': 'katana', 'samurai sword': 'katana', 'bow': 'crossbow', 'bow and arrow': 'crossbow', 'arrows': 'crossbow'
 };
 
 const ITEM_WORDS = {
   frying_pan: ['frying pan', 'pan', 'skillet'],
-  flashlight: ['flashlight', 'flash light'],
+  kitchen_knife: ['kitchen knife', 'knife'],
+  canned_food: ['canned food', 'can of food', 'cans of food', 'canned'],
+  water_bottle: ['water bottle', 'bottle of water'],
   first_aid: ['first aid kit', 'first aid', 'medkit', 'med kit'],
+  flashlight: ['flashlight', 'flash light'],
+  duct_tape: ['duct tape'],
+  golf_club: ['golf club'],
   hockey_stick: ['hockey stick'],
-  fireworks: ['fireworks', 'firework'],
+  lighter: ['lighter'],
+  fire_extinguisher: ['fire extinguisher', 'extinguisher'],
   rope: ['rope'],
-  skateboard: ['skateboard', 'skate board'],
-  car_keys: ['car keys', 'keys'],
+  road_map: ['road map', 'map'],
+  air_horn: ['air horn'],
+  hiking_boots: ['hiking boots', 'boots'],
   energy_drink: ['energy drink'],
   crowbar: ['crowbar', 'crow bar'],
+  nail_gun: ['nail gun'],
   helmet: ['helmet', 'motorcycle helmet'],
   katana: ['katana'],
   walkie: ['walkie talkie', 'walkie'],
+  megaphone: ['megaphone'],
   bat: ['bat', 'baseball bat'],
   crossbow: ['crossbow', 'cross bow'],
+  machete: ['machete'],
   binoculars: ['binoculars'],
   riot_shield: ['riot shield', 'shield'],
+  kevlar_vest: ['kevlar vest', 'kevlar', 'bulletproof vest', 'vest'],
+  pepper_spray: ['pepper spray'],
   fire_axe: ['fire axe', 'axe', 'ax'],
   hammer_nails: ['hammer'],
   flare_gun: ['flare gun', 'flare']

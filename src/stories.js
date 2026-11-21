@@ -210,22 +210,49 @@ const ACTIONS = {
 
 const TRAVEL_TEXT = {
   good: [
-    '{name} cuts through backyards, jumps two fences, and makes it all the way to {dest} without a single scratch.',
-    '{name} keeps low and moves fast, ducking behind cars and mailboxes the whole way. Finally, {dest} comes into view.',
-    'It is a long, scary trip with zombies groaning on every street, but {name} makes it to {dest} in one piece.'
+    '{name} sets off on foot down {route}, cutting through backyards and ducking behind parked cars. After {miles} miles of holding their breath at every corner, {dest} finally comes into view.',
+    '{name} walks {miles} miles along {route}, keeping to the shadows. Zombies stagger past on the other side of the street, but none of them notice. {name} reaches {dest} safely.',
+    'It is a long, scary walk down {route}, with zombies groaning in every yard. But {name} keeps moving and makes it to {dest} in one piece.'
   ],
-  drive: [
-    '{name} jumps into the car, turns the key, and the engine roars to life! {name} floors it, honks at a few zombies on the way, and screeches into {dest}.'
+  car: [
+    '{name} turns the key and the engine roars to life. {name} speeds down {route}, swerving around abandoned cars and knocking a zombie into a hedge, and pulls up at {dest} {miles} miles later.',
+    '{name} floors it down {route}. Zombies turn to look, but the car is already gone. {name} parks right outside {dest}.'
+  ],
+  motorcycle: [
+    'The motorcycle coughs, then roars. {name} weaves down {route} between wrecked cars, leaving the zombies in a cloud of dust, and skids to a stop at {dest}.'
+  ],
+  bike: [
+    '{name} pedals hard down {route}, flying past zombies that are way too slow to catch up. {miles} miles later, {name} coasts up to {dest}, legs burning.'
+  ],
+  skateboard: [
+    '{name} kicks off down {route}, the wheels clacking over the cracks in the road. A zombie grabs for {name} and misses by a mile. {name} rolls right up to {dest}.'
+  ],
+  crash: [
+    '{name} floors it down {route} and does not brake. The car smashes straight through the entrance of {dest} in an explosion of glass, flattening a whole crowd of zombies. Steam pours from the hood. The car is wrecked, but {name} is inside {spot}!'
   ],
   hurt: [
-    '{name} makes it to {dest}, but a zombie hiding under a parked car grabs an ankle on the way. {name} kicks free, limping.',
-    'Halfway to {dest}, {name} runs right into a zombie. After a scary struggle, {name} breaks free and makes it there, scratched up.'
+    'Somewhere along {route}, a zombie lunges out from behind a mailbox and gets {name} before {name} can get away. {name} limps the rest of the way to {dest}.',
+    '{name} makes it to {dest}, but the trip down {route} was rough. A zombie grabbed {name} at an intersection and left a nasty scratch.'
   ],
   dead: [
-    '{name} never makes it to {dest}. A horde was waiting just around the corner.',
-    'On the way to {dest}, {name} takes a shortcut down an alley. It is a dead end. Full of zombies.'
+    '{name} never makes it to {dest}. Somewhere along {route}, the zombies were waiting.',
+    '{miles} miles was too far. Halfway down {route}, {name} is surrounded with nowhere left to go.'
+  ],
+  crashDead: [
+    '{name} slams into the entrance of {dest}, but the doors hold. The car crumples, and the zombies swarm the wreck before {name} can climb out.'
   ]
 };
+
+const ENTER_TEXT = {
+  good: ['{name} slips inside {spot} and looks around.', '{name} carefully makes their way into {spot}.'],
+  hurt: ['A zombie lunges out of a doorway as {name} heads for {spot}. {name} gets inside, but not without a scratch.'],
+  dead: ['{spot} was full of zombies. {name} walked right into them.'],
+  outside: ['{name} heads back outside, checking both ways first.'],
+  crash: ['{name} guns the engine and drives straight through the doors into {spot}! Glass everywhere, zombies flattened. The car is wrecked, but {name} made it inside.'],
+  crashDead: ['{name} tries to drive into {spot}, but the car gets stuck in the doorway. The zombies swarm it.']
+};
+
+const STREET_SEARCH_FAIL = '{name} checks the cars and driveways along the street, but nothing works. Flat tires, no keys, dead batteries. Maybe on the next trip.';
 
 const SACRIFICE_TEXT = 'But {friend} jumps in the way at the last second and pushes {name} to safety! {friend} holds the zombies back while {name} escapes... but {friend} does not make it out. 💔';
 
@@ -235,7 +262,7 @@ const ZOMBIE_WORDS = ['zombie', 'monster', 'undead', 'horde', 'walker', 'corpse'
 
 const PRIORITY = ['fight', 'run', 'drive', 'climb', 'hide', 'sneak', 'barricade', 'trick', 'call', 'heal', 'help', 'supplies', 'dumb'];
 
-const IDEAS = 'Try: run · hide · fight · climb · sneak · drive · trick · barricade · search · help · call · heal · talk to survivors · "go to" a place';
+const IDEAS = 'Try: run · hide · fight · climb · sneak · trick · barricade · search · help · call · heal · talk to people · "go into" a store or room · "go to" a place · "drive/ride to" a place';
 
 for (const type in MORE_WORDS) ACTIONS[type].words.push(...MORE_WORDS[type]);
 ACTIONS.dumb.words.push(...MORE_DUMB.words);
@@ -245,7 +272,11 @@ MOVE_WORDS.push(...MORE_MOVE_WORDS);
 ZOMBIE_WORDS.push(...MORE_ZOMBIE_WORDS);
 for (const k in PLACE_TYPOS) LOCATIONS[k].aliases.push(...PLACE_TYPOS[k]);
 
-const GENERIC_ALIASES = ['dog', 'puppy', 'doggy', 'doggo', 'pup', 'officer', 'cop', 'doctor', 'nurse', 'mechanic', 'old man', 'hunter', 'skater', 'tank'];
+const GENERIC_ALIASES = ['dog', 'puppy', 'doggy', 'doggo', 'pup', 'officer', 'cop', 'doctor', 'nurse', 'mechanic', 'old man', 'hunter', 'skater', 'tank', 'ranger', 'engineer', 'owner', 'store owner', 'coach'];
+
+const VEHICLE_NOUNS = ['car', 'truck', 'vehicle', 'bike', 'bicycle', 'skateboard', 'motorcycle', 'motorbike', 'scooter', 'wheels', 'ride'];
+const LEAVE_RE = /\b(outside|out front|leave the|exit|back out|go out|get out of the|step out)\b/;
+const CRASH_RE = /\b(into|through|crash|smash|ram|plow)\b/;
 
 const SUFFIX = '(s|es|ed|d|ing|ning|ting|ping|ging|ming|bing|king|ling|er|ers|y|ily|ly)?';
 const regexCache = {};
@@ -274,7 +305,12 @@ function knownWords() {
   if (knownList) return knownList;
   const all = [...MOVE_WORDS, ...ZOMBIE_WORDS, ...PRONOUNS, ...CHEAT_WORDS, ...Object.keys(FAKE_GEAR), ...NEVER_FUZZY];
   for (const type in ACTIONS) all.push(...ACTIONS[type].words, ...(ACTIONS[type].strong || []), ...(ACTIONS[type].affection || []));
-  for (const k in LOCATIONS) all.push(...LOCATIONS[k].aliases);
+  for (const k in LOCATIONS) {
+    all.push(...LOCATIONS[k].aliases);
+    for (const sk in LOCATIONS[k].spots) all.push(...LOCATIONS[k].spots[sk].aliases);
+  }
+  for (const k in VEHICLE_WORDS) all.push(...VEHICLE_WORDS[k]);
+  all.push(...RIDE_WORDS, ...VEHICLE_NOUNS);
   for (const k in SURVIVORS) all.push(...SURVIVORS[k].aliases);
   for (const k in ITEM_WORDS) all.push(...ITEM_WORDS[k]);
   knownList = [...new Set(all.filter(w => !w.includes(' ')))];
@@ -348,6 +384,21 @@ function checkMissingSurvivor(ctx, p) {
   return null;
 }
 
+const spotLabel = name => name.startsWith('Your') || name.includes("'s ") ? name : 'the ' + name;
+
+function vehicleFor(ctx, p) {
+  for (const key of ['motorcycle', 'skateboard', 'bike', 'car']) {
+    if (countHits(ctx, VEHICLE_WORDS[key]) > 0) return key;
+  }
+  if (countHits(ctx, RIDE_WORDS) > 0) return ['motorcycle', 'bike', 'skateboard'].find(k => p.vehicles.includes(k)) || 'nothing';
+  return null;
+}
+
+function missingVehicle(p, v) {
+  if (v === 'nothing') return `${p.name} doesn't have anything to ride! Vehicles can only be found out on the roads (try "search the street for a bike") or from survivors.`;
+  return `${p.name} doesn't have a ${VEHICLES[v].name.toLowerCase()}! Vehicles can only be found out on the roads (try "search the street for a ${v}") or from survivors.`;
+}
+
 function parseAction(typed, p) {
   const t = cleanUp(typed);
   const here = LOCATIONS[p.at];
@@ -380,33 +431,68 @@ function parseAction(typed, p) {
     if (scores[type] > bestScore) { best = type; bestScore = scores[type]; }
   }
 
-  const moving = countHits(ctx, MOVE_WORDS) > 0;
-  const place = Object.keys(LOCATIONS).find(k => k !== p.at && LOCATIONS[k].aliases.some(a => hits(ctx, a)));
-  if (!place && moving && (!best || best === 'run') && here.aliases.some(a => hits(ctx, a))) {
-    return { hint: `${p.name} is already at ${here.name}! Places nearby: ${here.neighbors.map(n => LOCATIONS[n].name).join(', ')}.` };
+  if (best === 'supplies' && searching && countHits(ctx, VEHICLE_NOUNS) > 0) {
+    const inside = p.spot || Object.keys(here.spots).find(k => here.spots[k].aliases.some(a => hits(ctx, a)));
+    if (inside) return { hint: `There are no vehicles inside ${spotLabel(here.spots[inside].name)}. Vehicles are only found out on the roads. Head outside first, then search the street.` };
+    return { type: 'supplies', street: true };
+  }
+
+  let vehicle = vehicleFor(ctx, p);
+  if (!vehicle && best === 'drive') vehicle = 'car';
+  const crashing = vehicle === 'car' && CRASH_RE.test(t);
+  const moving = countHits(ctx, MOVE_WORDS) > 0 || !!vehicle;
+
+  const localSpot = Object.keys(here.spots).find(k => here.spots[k].aliases.some(a => hits(ctx, a))) || null;
+  let otherSpot = null;
+  for (const k in LOCATIONS) {
+    if (k === p.at) continue;
+    const s = Object.keys(LOCATIONS[k].spots).find(sk => hits(ctx, LOCATIONS[k].spots[sk].aliases[0]));
+    if (s) { otherSpot = { loc: k, spot: s }; break; }
+  }
+  const place = Object.keys(LOCATIONS).find(k => k !== p.at && LOCATIONS[k].aliases.some(a => hits(ctx, a))) || (otherSpot && otherSpot.loc);
+  const mentionsHere = here.aliases.some(a => hits(ctx, a));
+
+  if (p.spot && !place && !localSpot && LEAVE_RE.test(t) && (!best || ['run', 'sneak'].includes(best))) {
+    return { type: 'enter', spot: null };
+  }
+  if (!place && !localSpot && moving && !crashing && (!best || best === 'run') && mentionsHere) {
+    return { hint: `${p.name} is already at ${here.name}! You can go inside a place here (look at the list on the right) or travel somewhere else.` };
   }
   if (place && best !== 'dumb' && (moving || !best || ['run', 'drive', 'sneak'].includes(best))) {
-    if (!here.neighbors.includes(place)) {
-      return { hint: `${LOCATIONS[place].name} is too far away from here! From ${here.name} you can get to: ${here.neighbors.map(n => LOCATIONS[n].name).join(', ')}.` };
-    }
-    return { type: 'travel', dest: place, via: best === 'drive' ? 'drive' : 'run' };
+    if (vehicle && !p.vehicles.includes(vehicle)) return { hint: missingVehicle(p, vehicle) };
+    const spots = Object.keys(LOCATIONS[place].spots);
+    const spot = otherSpot && otherSpot.loc === place ? otherSpot.spot : crashing ? Phaser.Utils.Array.GetRandom(spots) : null;
+    return { type: 'travel', dest: place, spot, vehicle, crash: crashing };
+  }
+  if (crashing && (localSpot || mentionsHere)) {
+    if (!p.vehicles.includes('car')) return { hint: missingVehicle(p, 'car') };
+    return { type: 'enter', spot: localSpot || Phaser.Utils.Array.GetRandom(Object.keys(here.spots)), crash: true };
+  }
+  if (best === 'drive' && !p.vehicles.includes('car')) return { hint: missingVehicle(p, 'car') };
+  if (localSpot && localSpot === p.spot && moving && (!best || best === 'run')) {
+    return { hint: `${p.name} is already in ${spotLabel(here.spots[localSpot].name)}!` };
+  }
+  if (localSpot && moving && (!best || ['run', 'sneak', 'drive'].includes(best))) {
+    return { type: 'enter', spot: localSpot };
   }
 
   if (best !== 'dumb') {
     const recruitScore = countHits(ctx, ACTIONS.recruit.words);
     if (survivor && recruitScore > 0 && recruitScore >= bestScore) return { type: 'recruit', survivor };
     if (!best && recruitScore > 0) {
-      return { hint: 'There is nobody here to talk to... except zombies, and they are terrible listeners. (Survivors can be found at some places around town!)' };
+      return { hint: 'There is nobody here to talk to except zombies, and they are terrible listeners. (Survivors can be found at most places around town.)' };
     }
   }
 
   if (!best) {
-    return { hint: `Hmm, the game didn't understand what ${p.name} is trying to do. Try using an action word like run, hide, fight, climb, sneak, search, or "go to" a nearby place.` };
+    if (vehicle) return { hint: `Where should ${p.name} go? Try something like "ride my bike to the mall" or "drive to the hospital".` };
+    return { hint: `Hmm, the game didn't understand what ${p.name} is trying to do. Try using an action word like run, hide, fight, climb, sneak, search, or "go to" a place.` };
   }
   if (best === 'run' || best === 'drive') {
-    return { type: 'travel', dest: Phaser.Utils.Array.GetRandom(here.neighbors), via: best };
+    if (vehicle && !p.vehicles.includes(vehicle)) return { hint: missingVehicle(p, vehicle) };
+    return { type: 'travel', dest: Phaser.Utils.Array.GetRandom(here.neighbors), spot: null, vehicle, crash: false };
   }
-  return { type: best };
+  return { type: best, spot: localSpot };
 }
 
 function moveOdds(odds, from, to, amount) {
@@ -416,10 +502,12 @@ function moveOdds(odds, from, to, amount) {
   odds[to] += moved;
 }
 
-function rollOutcome(baseOdds, boost, armor, round, repeated) {
+function rollOutcome(baseOdds, boost, armor, round, repeated, miles = 0) {
   const odds = baseOdds.slice();
   moveOdds(odds, 2, 0, boost / 2);
   moveOdds(odds, 1, 0, boost / 2);
+  moveOdds(odds, 0, 1, miles * 10);
+  moveOdds(odds, 0, 2, miles * 8);
   if (armor) moveOdds(odds, 2, 1, 12);
   moveOdds(odds, 0, 2, (round - 1) * 4);
   if (repeated) moveOdds(odds, 0, 2, 15);

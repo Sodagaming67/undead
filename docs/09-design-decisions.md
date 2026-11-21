@@ -67,3 +67,20 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 - Cheat words must match exactly, so "wand" never matches "wander".
 
 **What was ruled out:** A real AI to understand sentences (costs money). Punishing cheats with instant death (would feel unfair to younger cousins). Typo matching on short words under 5 letters (too many false matches).
+
+### Stores, Roads, Vehicles
+
+**What was asked:** Items in every building, roads with distance-based danger, realistic survivors who can die, more possible actions (driving into malls, hiding in specific stores), vehicles shown and usable, vehicles only from roads or survivors.
+**What was built:**
+- Each location has `spots` (stores and rooms) with `items` and `good` (actions that get +20 there).
+- `ROADS` lists road name, miles and endpoints. `routeFrom`/`routeTo` (shortest path) give distance and road names for the travel text.
+- Travel moves odds toward hurt and dead by miles × vehicle factor (car 0.4, motorcycle 0.5, bike 0.65, skateboard 0.8, walking 1).
+- Vehicles live in `p.vehicles`, separate from the backpack. A good trip has a 25% chance to find one. "Search the street" (outside only) has a 60% chance. Survivors Tank, Diaz, Luna, Al and Joe each bring one.
+- Teammates have 2 hearts. On a hurt result, a teammate takes the hit 35% of the time. On a dead result, a teammate sacrifices themselves 50% of the time.
+**Why this way:**
+- Spots let the same word ("hide", "search") mean something different depending on where you are, which makes many more actions possible without many new action types.
+- Shortest-path routes mean the map stays readable while making far places truly risky.
+- Keeping vehicles out of the backpack lets the game check you really own one before driving, and lets the panel show how to use each one.
+- Crashing into a building wrecks the car so it is a real choice, not a free win.
+- Only a spot's first alias counts for traveling to it from another place, so generic words like "roof" do not send you across town.
+**What was ruled out:** Only letting you travel to neighbors (felt limiting once roads had distances). Keeping car keys as a findable item (the user wanted vehicles only from roads or survivors). Letting unrecruited survivors die off-screen (more confusing than fun).
