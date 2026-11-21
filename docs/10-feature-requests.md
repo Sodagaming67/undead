@@ -31,3 +31,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** Name entry screen for up to 8 cousins. Players take turns: each gets a random zombie situation, types what they do, and the game matches keywords to pick an outcome (safe, hurt, or dead). 3 hearts each, danger rises every round, smart moves for the situation are safer, repeating your last move is riskier. Last cousin alive wins; with one player it counts rounds survived. Game over screen shows who died when and from what.
 **Files changed:** `src/stories.js` (new), `src/scenes/SetupScene.js` (new), `src/scenes/GameScene.js`, `src/scenes/MenuScene.js`, `src/main.js`, `index.html`
 **Design note:** → [Session 1 — Zombie Story Game](09-design-decisions.md)
+
+### #3 — Connected Story, Places, Items, Survivors, Smarter Words
+
+**Asked:** "Make it more like a story and make everything connected, add a lot more words to the descriptions, give info on places nearby to run to or have stuff in them (like weapons that make you less likely to die when you attack), add other survivors you can meet, and give the word-finder a lot more words so it doesn't give confusing answers."
+**Status:** ✓ Done
+**What was built:** A town map of 10 connected places, each with a long description, its own zombie situations, and items to find. 20 items (weapons boost fighting, others boost sneaking, healing, driving, calling, barricades; helmets and shields make you harder to kill). 7 survivors (including Biscuit the dog) who join your team, make actions safer, and may sacrifice themselves to save you. Side panel shows place, nearby places, backpack, team, and whether there is stuff left to find. "Last time" recap line keeps each cousin's story connected. Word-finder now has hundreds of words, understands "go to <place>", and asks you to try again instead of guessing when it does not understand. Screen is bigger (960x640) and scales to fit the window.
+**Files changed:** `src/world.js` (new), `src/stories.js`, `src/scenes/GameScene.js`, `src/scenes/SetupScene.js`, `src/main.js`, `index.html`
+**Design note:** → [Session 1 — Connected Story Update](09-design-decisions.md)
