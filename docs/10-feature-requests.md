@@ -60,3 +60,16 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 - Bug: the game crashed when starting a turn because it was opened mid-update (new town file with the old game screen). Fixed by finishing the update, and checked with a real browser playthrough.
 **Files changed:** `src/world.js`, `src/words.js`, `src/stories.js`, `src/scenes/GameScene.js`, `src/scenes/SetupScene.js`, `src/main.js`
 **Design note:** → [Session 1 — Stores, Roads, Vehicles](09-design-decisions.md)
+
+### #6 — Team Orders, Name Banner, Free Small Actions, Stats Spreadsheet, Anti-Farming
+
+**Asked:** "Make a spot for talking to the other survivors (just words like protect, fight, or hide). Make each player have their name on top of the screen on their turn. Don't count small actions like talking to survivors or stealing a car as full turns. At the end put the number of turns everyone took and their stats on a spreadsheet. Make sure there's always action everywhere so my cousins can't farm free turns to get a high score."
+**Status:** ✓ Done
+**What was built:**
+- Team orders: "barry protect me", "team fight", "everyone hide", "luna follow me". Each teammate has an order (FOLLOW, PROTECT, FIGHT, HIDE) shown in a TEAM ORDERS section of the panel, and it changes how much they help and how often they take hits for you.
+- A big colored name banner ("🎮 ANN'S TURN 🎮") at the top during each player's whole turn, with a different color per player.
+- Small actions (talking to or recruiting survivors, giving orders, searching the street for a vehicle) don't end your turn, with a maximum of 2 per turn. They can still go wrong.
+- Anti-farming: each street can only be searched for vehicles once, zombies gather if you stay at the same place turn after turn (danger grows each extra turn), danger still rises every round, and only full turns count toward stats and score.
+- Game over shows a ranked stats table. Press S to download `undead-inc-results.csv` (opens in Excel or Google Sheets) with every game played on this computer: turns, small actions, hearts, places visited, miles, items, vehicles, survivors recruited and lost, fights won, times hurt, last action, and score.
+**Files changed:** `src/scenes/GameScene.js`, `src/stories.js`, `src/words.js`, `src/main.js`, `src/scenes/SetupScene.js`
+**Design note:** → [Session 1 — Team Orders and Stats](09-design-decisions.md)

@@ -84,3 +84,17 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 - Crashing into a building wrecks the car so it is a real choice, not a free win.
 - Only a spot's first alias counts for traveling to it from another place, so generic words like "roof" do not send you across town.
 **What was ruled out:** Only letting you travel to neighbors (felt limiting once roads had distances). Keeping car keys as a findable item (the user wanted vehicles only from roads or survivors). Letting unrecruited survivors die off-screen (more confusing than fun).
+
+### Team Orders and Stats
+
+**What was asked:** Simple orders for survivors, the player's name on screen, small actions not counting as turns, a stats spreadsheet at the end, and no way to farm free turns.
+**What was built:**
+- `p.orders` holds each teammate's order. HIDE gives 0 help and 0 risk to them. PROTECT gives half help, but they take hits 70% of the time and sacrifice themselves 75% of the time. FIGHT gives +15 on fights and a 50% hit chance. FOLLOW is the old normal (35% hit, 50% sacrifice).
+- Small actions go to a `free` phase, which re-shows the same turn and the same event after ENTER.
+- `p.turns` counts only full actions. `p.stats` tracks everything for the table and the CSV.
+- Game history is saved in the browser's local storage, so the CSV includes all earlier games on this computer.
+**Why this way:**
+- Orders need a teammate's name or a team word ("team", "everyone", "guys"). That way a plain "hide" still means YOU hide, and sentences starting with "I" count as your own move unless they say "tell" or "ask".
+- The 2-small-action cap, the once-per-street vehicle search, and the camping danger (+6 hurt and +6 death per extra turn in the same place after the second) close the farming loopholes. Simulations showed campers and small-action spammers survive fewer turns than explorers.
+- A CSV download needs no accounts or paid tools and opens in any spreadsheet app.
+**What was ruled out:** A separate text box for team talk (one box is simpler for kids). Making small actions risk-free (would be farmable). Uploading results to Google Sheets (needs sign-in and an internet connection).

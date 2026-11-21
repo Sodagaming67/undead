@@ -99,3 +99,19 @@ const SPECIAL_PHRASES = [
 ];
 
 const NEVER_FUZZY = ['night', 'there', 'their', 'where', 'about', 'would', 'could', 'should', 'these', 'those', 'thing', 'things', 'think', 'other', 'after', 'again', 'right', 'light', 'sight', 'might', 'while', 'horse', 'start', 'still', 'stand', 'place', 'space', 'spare', 'share', 'shore', 'score', 'store', 'stare', 'scare', 'heard', 'world', 'sound', 'round', 'found', 'ground', 'pound', 'wound', 'today', 'tomorrow', 'someone', 'something', 'quick', 'quickly', 'finally', 'every', 'everything', 'nothing', 'anything', 'anyone', 'because', 'until', 'unless', 'since', 'along', 'across', 'against', 'among', 'beside', 'beyond', 'during', 'except', 'within', 'without', 'myself', 'yourself', 'himself', 'herself', 'itself', 'themselves', 'always', 'sometimes', 'often', 'usually', 'already', 'almost', 'enough', 'rather', 'totally', 'actually', 'really', 'please', 'thanks', 'maybe', 'there', 'first', 'front', 'between', 'through', 'though', 'thought', 'three', 'great', 'green', 'chore', 'skill', 'spill', 'thrill', 'widow', 'meadow', 'pillow', 'yellow', 'fellow', 'hollow', 'swallow', 'which', 'whose', 'whole', 'other', 'another', 'never', 'ever', 'cause', 'close', 'chose', 'choose', 'those', 'house', 'mouse', 'shout', 'south', 'mouth', 'month', 'north', 'earth', 'heart', 'party', 'pretty', 'happy', 'sorry', 'funny', 'scary', 'crazy', 'angry', 'hungry', 'thirsty', 'tired', 'sleepy', 'dirty', 'empty', 'heavy', 'ready', 'steady', 'lucky', 'tricky', 'sticky', 'speak', 'sneaks', 'snake', 'snack', 'stack', 'stick', 'stuck', 'track', 'truck', 'trunk', 'drink', 'drunk', 'thank', 'plank', 'blank', 'crank', 'prank', 'brick', 'click', 'flick', 'thick', 'quick', 'slick', 'climate', 'clean', 'clear', 'claim', 'climbs', 'hiker', 'hides', 'hider', 'fights', 'fighter', 'height', 'weight', 'eight', 'tight', 'bright', 'fright', 'flight', 'slight', 'knight', 'mighty', 'naughty', 'nightmare'];
+
+const ORDER_WORDS = {
+  protect: ['protect', 'guard', 'cover me', 'watch my back', 'defend me', 'bodyguard', 'keep me safe', 'stay close', 'stay near', 'shield me', 'look after me', 'have my back', 'back me up'],
+  hide: ['hide', 'stay back', 'stay safe', 'take cover', 'lay low', 'stay hidden', 'stay here', 'wait here', 'keep out of sight', 'hang back', 'stay out of it'],
+  fight: ['fight', 'attack', 'kill', 'charge', 'take them out', 'go get', 'smash', 'help me fight', 'be aggressive', 'go wild', 'fight with me', 'beat'],
+  follow: ['follow', 'stick with me', 'come with', 'normal', 'back to normal', 'regroup', 'with me', 'do your thing', 'be normal']
+};
+
+const TEAM_WORDS = ['team', 'everyone', 'everybody', 'all of you', 'guys', 'squad', 'yall', 'crew', 'you all', 'friends', 'tell'];
+
+const ORDER_INFO = {
+  follow: { label: 'FOLLOW', desc: 'normal: helps you and sometimes takes hits for you' },
+  protect: { label: 'PROTECT', desc: 'stays right next to you: much more likely to take hits for you, but helps less with everything else' },
+  fight: { label: 'FIGHT', desc: 'goes after zombies: fighting is much safer, but they get hurt more often' },
+  hide: { label: 'HIDE', desc: 'stays out of danger: they will not get hurt, but they will not help you either' }
+};

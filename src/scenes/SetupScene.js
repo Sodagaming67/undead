@@ -16,7 +16,7 @@ class SetupScene extends Phaser.Scene {
 
     this.listText = this.add.text(410, 170, '', { fontSize: '22px', fill: '#ffffff', lineSpacing: 6 });
     this.inputText = this.add.text(410, 520, '', { fontSize: '22px', fill: '#88ff88' });
-    this.footerText = this.add.text(560, 650, '', { fontSize: '16px', fill: '#888888' }).setOrigin(0.5);
+    this.footerText = this.add.text(560, 690, '', { fontSize: '16px', fill: '#888888' }).setOrigin(0.5);
 
     this.time.addEvent({ delay: 400, loop: true, callback: () => { this.cursorOn = !this.cursorOn; this.draw(); } });
     this.input.keyboard.on('keydown', e => this.onKey(e));

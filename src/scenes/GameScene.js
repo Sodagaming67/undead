@@ -1,11 +1,19 @@
+const MAX_FREE = 2;
+const PLAYER_COLORS = ['#ff6b6b', '#4dabf7', '#69db7c', '#ffd43b', '#da77f2', '#ffa94d', '#3bc9db', '#f783ac'];
+const HIT_CHANCE = { follow: 0.35, protect: 0.7, fight: 0.5, hide: 0 };
+const SAVE_CHANCE = { follow: 0.5, protect: 0.75, fight: 0.5, hide: 0 };
+const HISTORY_KEY = 'undeadIncHistory';
+
 class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
 
   init(data) {
-    this.players = data.names.map(name => ({
-      name, hearts: 3, alive: true, last: null,
+    this.players = data.names.map((name, i) => ({
+      name, color: PLAYER_COLORS[i % PLAYER_COLORS.length], hearts: 3, alive: true, last: null,
       at: 'house', spot: null, spotFresh: false, justArrived: true,
-      items: [], vehicles: [], found: {}, team: [], teamHearts: {}, lost: [], met: [], eventIdx: {},
+      items: [], vehicles: [], found: {}, team: [], teamHearts: {}, orders: {}, lost: [], met: [], eventIdx: {},
+      streetSearched: [], stay: 0, prevTurnAt: null, turns: 0, freeUsed: 0,
+      stats: { fightsWon: 0, timesHurt: 0, miles: 0, visited: ['house'], itemsFound: 0, vehiclesFound: 0, recruited: 0, friendsLost: 0, freeActions: 0 },
       recap: '', diedRound: 0, death: ''
     }));
     this.round = 1;
@@ -14,17 +22,18 @@ class GameScene extends Phaser.Scene {
 
   create() {
     const W = this.scale.width;
-    this.statusText = this.add.text(20, 14, '', { fontSize: '16px', fill: '#cccccc', wordWrap: { width: W - 40 } });
-    this.headerText = this.add.text(30, 58, '', { fontSize: '28px', fill: '#ff5555', fontStyle: 'bold' });
-    this.recapText = this.add.text(30, 98, '', { fontSize: '14px', fill: '#888888', fontStyle: 'italic', wordWrap: { width: 660 } });
-    this.storyText = this.add.text(30, 128, '', { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 660 }, lineSpacing: 5 });
+    this.bannerText = this.add.text(W / 2, 8, '', { fontSize: '30px', fontStyle: 'bold', stroke: '#000000', strokeThickness: 5 }).setOrigin(0.5, 0);
+    this.statusText = this.add.text(20, 50, '', { fontSize: '15px', fill: '#cccccc', wordWrap: { width: W - 40 } });
+    this.headerText = this.add.text(30, 82, '', { fontSize: '26px', fill: '#ff5555', fontStyle: 'bold' });
+    this.recapText = this.add.text(30, 118, '', { fontSize: '14px', fill: '#888888', fontStyle: 'italic', wordWrap: { width: 660 } });
+    this.storyText = this.add.text(30, 146, '', { fontSize: '16px', fill: '#ffffff', wordWrap: { width: 660 }, lineSpacing: 5 });
     this.inputText = this.add.text(30, 400, '', { fontSize: '18px', fill: '#88ff88', wordWrap: { width: 660 }, lineSpacing: 5 });
     this.hintText = this.add.text(30, 500, '', { fontSize: '15px', fill: '#ffaa44', wordWrap: { width: 660 } });
 
-    this.add.rectangle(715, 50, 390, 600, 0x1c2a1c).setOrigin(0).setStrokeStyle(2, 0x3a5a3a);
-    this.panelText = this.add.text(728, 60, '', { fontSize: '13px', fill: '#dddddd', wordWrap: { width: 366 }, lineSpacing: 2 });
+    this.add.rectangle(715, 78, 390, 600, 0x1c2a1c).setOrigin(0).setStrokeStyle(2, 0x3a5a3a);
+    this.panelText = this.add.text(728, 88, '', { fontSize: '13px', fill: '#dddddd', wordWrap: { width: 366 }, lineSpacing: 2 });
 
-    this.footerText = this.add.text(W / 2, 674, '', { fontSize: '13px', fill: '#888888', align: 'center', wordWrap: { width: W - 40 } }).setOrigin(0.5);
+    this.footerText = this.add.text(W / 2, 710, '', { fontSize: '13px', fill: '#888888', align: 'center', wordWrap: { width: W - 40 } }).setOrigin(0.5);
 
     this.typed = '';
     this.hint = '';
@@ -32,6 +41,10 @@ class GameScene extends Phaser.Scene {
     this.time.addEvent({ delay: 400, loop: true, callback: () => { this.cursorOn = !this.cursorOn; this.drawInput(); } });
     this.input.keyboard.on('keydown', e => this.onKey(e));
     this.startTurn();
+  }
+
+  drawBanner(text, color) {
+    this.bannerText.setText(text).setColor(color);
   }
 
   drawStatus() {
@@ -47,10 +60,16 @@ class GameScene extends Phaser.Scene {
     return LOCATIONS[loc].spots[spot].items.length - (p.found[`${loc}.${spot}`] || 0);
   }
 
+  campDanger(p) {
+    return Math.max(0, p.stay - 1) * 6;
+  }
+
   drawPanel() {
     const p = this.current;
     const loc = LOCATIONS[p.at];
-    const lines = [`📍 ${loc.name.toUpperCase()}`, p.spot ? `     inside: ${loc.spots[p.spot].name}` : '     outside, on the street', '', 'STORES & ROOMS HERE  (🔎 = stuff to find):'];
+    const lines = [`📍 ${loc.name.toUpperCase()}`, p.spot ? `     inside: ${loc.spots[p.spot].name}` : '     outside, on the street'];
+    if (p.stay >= 2) lines.push(`     ⚠ zombies gathering (here ${p.stay + 1} turns in a row)`);
+    lines.push('', 'STORES & ROOMS HERE  (🔎 = stuff to find):');
     for (const k in loc.spots) {
       lines.push(`  ${k === p.spot ? '▶' : '•'} ${loc.spots[k].name}${this.itemsLeft(p, p.at, k) > 0 ? '  🔎' : ''}`);
     }
@@ -72,7 +91,10 @@ class GameScene extends Phaser.Scene {
     p.items.forEach(k => { counts[k] = (counts[k] || 0) + 1; });
     const items = Object.keys(counts).map(k => ITEMS[k].short + (counts[k] > 1 ? ` x${counts[k]}` : ''));
     lines.push('', 'BACKPACK: ' + (items.length ? items.join(', ') : '(empty)'));
-    lines.push('', 'TEAM: ' + (p.team.length ? p.team.map(k => `${SURVIVORS[k].name} ${'❤'.repeat(p.teamHearts[k])}`).join(', ') : 'just you'));
+
+    lines.push('', 'TEAM ORDERS  (type "team protect/fight/hide/follow"):');
+    if (p.team.length) p.team.forEach(k => lines.push(`  ${SURVIVORS[k].name} ${'❤'.repeat(p.teamHearts[k])}: ${ORDER_INFO[p.orders[k] || 'follow'].label}`));
+    else lines.push('  no team yet');
 
     const survivor = survivorHere(p);
     if (survivor) lines.push('', `SURVIVOR HERE: ${SURVIVORS[survivor].name} (talk to them!)`);
@@ -80,11 +102,11 @@ class GameScene extends Phaser.Scene {
   }
 
   startTurn() {
-    this.phase = 'typing';
-    this.typed = '';
-    this.hint = '';
     const p = this.current = this.players[this.turn];
     const loc = LOCATIONS[p.at];
+    p.freeUsed = 0;
+    p.stay = p.prevTurnAt === p.at ? p.stay + 1 : 0;
+    p.prevTurnAt = p.at;
 
     const idx = p.eventIdx[p.at] || 0;
     this.event = loc.events[idx % loc.events.length];
@@ -96,20 +118,33 @@ class GameScene extends Phaser.Scene {
     if (p.spot && p.spotFresh) parts.push(`You are inside ${spotLabel(loc.spots[p.spot].name)}. ${loc.spots[p.spot].desc}`);
     p.justArrived = false;
     p.spotFresh = false;
+    if (p.stay >= 2) parts.push(`⚠ More and more zombies are gathering around ${loc.name}. The longer ${p.name} stays here, the more dangerous it gets.`);
     parts.push(this.event.text);
 
     const survivor = survivorHere(p);
     if (survivor && !p.met.includes(survivor)) {
       p.met.push(survivor);
-      parts.push(`${SURVIVORS[survivor].intro} (Try typing something like "ask ${SURVIVORS[survivor].aliases[0][0].toUpperCase() + SURVIVORS[survivor].aliases[0].slice(1)} to join".)`);
+      const first = SURVIVORS[survivor].aliases[0];
+      parts.push(`${SURVIVORS[survivor].intro} (Try typing something like "ask ${first[0].toUpperCase() + first.slice(1)} to join". Talking is a small action, so it won't use up your turn.)`);
     }
+    this.turnStory = parts.join('\n\n');
+    this.showTurn();
+  }
 
-    this.headerText.setText(`${p.name}'s turn`).setColor('#ff5555');
+  showTurn() {
+    const p = this.current;
+    this.phase = 'typing';
+    this.typed = '';
+    this.hint = '';
+    this.drawBanner(`🎮 ${p.name.toUpperCase()}'S TURN 🎮`, p.color);
+    this.headerText.setText(p.freeUsed ? `Still ${p.name}'s turn` : `What will ${p.name} do?`).setColor(p.color);
     this.recapText.setText(p.recap ? `Last time: ${p.recap}` : `Pass the keyboard to ${p.name}!`);
-    this.storyText.setText(parts.join('\n\n')).setColor('#ffffff');
+    this.storyText.setY(this.recapText.y + this.recapText.height + 10);
+    this.storyText.setText(this.turnStory).setColor('#ffffff');
     this.inputText.setColor('#88ff88');
     const ride = p.vehicles.length ? `\nYou have: ${p.vehicles.map(v => VEHICLES[v].icon + ' ' + VEHICLES[v].name).join(', ')}. You can use it to travel anywhere!` : '';
-    this.footerText.setText(`${IDEAS}${ride}\nPress ENTER when you're done typing`);
+    const free = `\nSmall actions (talking to people, team orders, searching the street for a vehicle) are free: ${MAX_FREE - p.freeUsed} left this turn.`;
+    this.footerText.setText(`${IDEAS}${ride}${free}\nPress ENTER when you're done typing`);
     this.drawStatus();
     this.drawPanel();
     this.drawInput();
@@ -118,7 +153,7 @@ class GameScene extends Phaser.Scene {
   drawInput() {
     if (this.phase !== 'typing') return;
     this.inputText.setY(this.storyText.y + this.storyText.height + 22);
-    this.inputText.setText('What do you do?\n> ' + this.typed + (this.cursorOn ? '_' : ''));
+    this.inputText.setText(`What does ${this.current.name} do?\n> ` + this.typed + (this.cursorOn ? '_' : ''));
     this.hintText.setY(this.inputText.y + this.inputText.height + 10);
     this.hintText.setText(this.hint);
   }
@@ -130,10 +165,13 @@ class GameScene extends Phaser.Scene {
       else if (e.key === 'Enter') { if (this.typed.trim()) return this.resolve(); }
       else if (e.key.length === 1 && this.typed.length < 140) this.typed += e.key;
       this.drawInput();
+    } else if (this.phase === 'free' && e.key === 'Enter') {
+      this.showTurn();
     } else if (this.phase === 'result' && e.key === 'Enter') {
       this.nextTurn();
     } else if (this.phase === 'over') {
-      if (e.key === 'Enter') this.scene.restart({ names: this.players.map(p => p.name) });
+      if (e.key === 's' || e.key === 'S') this.downloadSpreadsheet();
+      else if (e.key === 'Enter') this.scene.restart({ names: this.players.map(p => p.name) });
       else if (e.key === 'Escape') this.scene.start('MenuScene');
     }
   }
@@ -145,6 +183,7 @@ class GameScene extends Phaser.Scene {
     if (!item) return null;
     p.found[key] = n + 1;
     p.items.push(item);
+    p.stats.itemsFound++;
     return item;
   }
 
@@ -153,7 +192,47 @@ class GameScene extends Phaser.Scene {
     if (!options.length) return null;
     const v = Phaser.Utils.Array.GetRandom(options);
     p.vehicles.push(v);
+    p.stats.vehiclesFound++;
     return v;
+  }
+
+  loseFriend(p, friend) {
+    p.team.splice(p.team.indexOf(friend), 1);
+    p.lost.push(friend);
+    p.stats.friendsLost++;
+  }
+
+  pickTeammate(p, chances) {
+    const candidates = Phaser.Utils.Array.Shuffle(p.team.slice());
+    return candidates.find(k => Math.random() < chances[p.orders[k] || 'follow']) || null;
+  }
+
+  showResult(text, look, free) {
+    const p = this.current;
+    this.phase = free ? 'free' : 'result';
+    this.headerText.setText(look[0]).setColor(look[1]);
+    this.recapText.setText('');
+    this.storyText.setY(146);
+    this.storyText.setText(`${p.name}: "${this.typed}"`).setColor('#aaaaaa');
+    this.inputText.setY(this.storyText.y + this.storyText.height + 22);
+    this.inputText.setText(text).setColor(look[1]);
+    this.hintText.setText('');
+    this.footerText.setText(free
+      ? `That was a small action, so ${p.name}'s turn isn't over! (${MAX_FREE - p.freeUsed} small actions left)\nPress ENTER to keep going`
+      : 'Press ENTER to continue');
+    this.drawStatus();
+    this.drawPanel();
+  }
+
+  giveOrder(parsed) {
+    const p = this.current;
+    parsed.who.forEach(k => { p.orders[k] = parsed.order; });
+    p.freeUsed++;
+    p.stats.freeActions++;
+    const names = parsed.who.map(k => SURVIVORS[k].name).join(' and ');
+    const replies = { protect: '"Got it. I\'m right beside you."', fight: '"Let\'s do this."', hide: '"Okay. I\'ll keep my head down."', follow: '"Right behind you."' };
+    const text = `${names} ${parsed.who.length > 1 ? 'nod' : 'nods'}. ${replies[parsed.order]}\n\nNew order: ${ORDER_INFO[parsed.order].label}. ${ORDER_INFO[parsed.order].desc[0].toUpperCase() + ORDER_INFO[parsed.order].desc.slice(1)}.`;
+    this.showResult(text, ['ORDERS GIVEN', '#66ccff'], true);
   }
 
   resolve() {
@@ -167,6 +246,14 @@ class GameScene extends Phaser.Scene {
     }
 
     const type = parsed.type;
+    const free = type === 'order' || type === 'recruit' || (type === 'supplies' && parsed.street);
+    if (free && p.freeUsed >= MAX_FREE) {
+      this.hint = `${p.name} already used both small actions this turn. Time to make a real move!`;
+      this.typed = '';
+      return this.drawInput();
+    }
+    if (type === 'order') return this.giveOrder(parsed);
+
     const style = type === 'travel' ? (parsed.vehicle === 'car' ? 'drive' : 'run') : type === 'enter' && parsed.crash ? 'drive' : type;
     const keys = type === 'travel' ? ['travel', style] : type === 'enter' ? [] : [type];
     const boostOf = b => keys.reduce((sum, k) => sum + ((b || {})[k] || 0), 0);
@@ -180,7 +267,11 @@ class GameScene extends Phaser.Scene {
     if (bestItem) { boost += boostOf(ITEMS[bestItem].boost); helpers.push(ITEMS[bestItem].short.toLowerCase()); }
     if (type === 'travel' && parsed.vehicle) { boost += VEHICLES[parsed.vehicle].boost; helpers.push(VEHICLES[parsed.vehicle].name.toLowerCase()); }
     p.team.forEach(k => {
-      const v = boostOf(SURVIVORS[k].boost);
+      const order = p.orders[k] || 'follow';
+      let v = boostOf(SURVIVORS[k].boost);
+      if (order === 'hide') v = 0;
+      if (order === 'protect') v = Math.floor(v / 2);
+      if (order === 'fight' && style === 'fight') v += 15;
       if (v) { boost += v; helpers.push(SURVIVORS[k].name); }
     });
     const armor = p.items.find(k => ITEMS[k].armor);
@@ -189,10 +280,10 @@ class GameScene extends Phaser.Scene {
     const route = type === 'travel' ? routeTo(p.at, parsed.dest) : null;
     const miles = route ? route.miles * (parsed.vehicle ? VEHICLES[parsed.vehicle].factor : 1) : 0;
 
-    const repeated = !['travel', 'supplies', 'recruit', 'enter'].includes(type) && p.last === type;
-    p.last = type;
+    const repeated = !free && !['travel', 'supplies', 'enter'].includes(type) && p.last === type;
+    if (!free) p.last = type;
     const baseOdds = type === 'enter' ? (parsed.crash ? ACTIONS.drive.odds : [80, 15, 5]) : ACTIONS[style].odds;
-    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles);
+    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p));
     if (type === 'enter' && parsed.spot === null) result = 'good';
 
     const weapon = p.items.reduce((best, k) => ((ITEMS[k].boost || {}).fight || 0) > (best ? ITEMS[best].boost.fight : 0) ? k : best, null);
@@ -214,10 +305,12 @@ class GameScene extends Phaser.Scene {
         p.spot = parsed.spot;
         p.justArrived = true;
         p.spotFresh = !!parsed.spot;
+        p.stats.miles = Math.round((p.stats.miles + route.miles) * 10) / 10;
+        if (!p.stats.visited.includes(parsed.dest)) p.stats.visited.push(parsed.dest);
         if (parsed.crash) {
           p.vehicles.splice(p.vehicles.indexOf('car'), 1);
           text += ' (The car is wrecked. You will need to find another one.)';
-        } else if (result === 'good' && Math.random() < 0.25) {
+        } else if (result === 'good' && Math.random() < 0.2) {
           const v = this.giveVehicle(p, Object.keys(VEHICLES));
           if (v) text += ` On the way, along ${route.roads[0]}, ${p.name} spots ${VEHICLES[v].found}. ${p.name} takes it! (You now have a ${VEHICLES[v].name.toLowerCase()}: ${VEHICLES[v].how}.)`;
         }
@@ -246,14 +339,19 @@ class GameScene extends Phaser.Scene {
           : s.join;
         p.team.push(parsed.survivor);
         p.teamHearts[parsed.survivor] = 2;
+        p.orders[parsed.survivor] = 'follow';
+        p.stats.recruited++;
+        text += ` (Give orders any time: "${s.aliases[0]} protect me", "team fight", "everyone hide".)`;
         const gift = SURVIVOR_GIFTS[parsed.survivor];
         if (gift && !p.vehicles.includes(gift[0])) {
           p.vehicles.push(gift[0]);
+          p.stats.vehiclesFound++;
           text += ' ' + gift[1];
         }
       }
     } else if (type === 'supplies' && parsed.street) {
-      if (result === 'good' && Math.random() < 0.6) {
+      p.streetSearched.push(p.at);
+      if (result === 'good' && Math.random() < 0.4) {
         const v = this.giveVehicle(p, Object.keys(VEHICLES));
         text = v
           ? `${p.name} checks the cars and driveways up and down the street and finds ${VEHICLES[v].found}! (You now have a ${VEHICLES[v].name.toLowerCase()}: ${VEHICLES[v].how}.)`
@@ -279,20 +377,23 @@ class GameScene extends Phaser.Scene {
       }
     }
 
-    if (result === 'good') text = this.applyRewards(p, type, text);
+    if (result === 'good') {
+      if (type === 'fight') p.stats.fightsWon++;
+      text = this.applyRewards(p, type, text);
+    }
 
     if (result === 'hurt') {
-      if (p.team.length && Math.random() < 0.35) {
-        const friend = Phaser.Utils.Array.GetRandom(p.team);
+      const friend = this.pickTeammate(p, HIT_CHANCE);
+      if (friend) {
         p.teamHearts[friend]--;
         text += `\n\n${SURVIVORS[friend].name} takes the hit instead of ${p.name}! (${SURVIVORS[friend].name} -1 ❤)`;
         if (p.teamHearts[friend] <= 0) {
           text += '\n\n' + SURVIVORS[friend].death + ' 💔';
-          p.team.splice(p.team.indexOf(friend), 1);
-          p.lost.push(friend);
+          this.loseFriend(p, friend);
         }
       } else {
         p.hearts--;
+        p.stats.timesHurt++;
         if (p.hearts <= 0) {
           result = 'dead';
           text += `\n\n${p.name} has no hearts left. That last bite was one too many...`;
@@ -302,13 +403,14 @@ class GameScene extends Phaser.Scene {
       }
     }
 
-    if (result === 'dead' && p.team.length && Math.random() < 0.5) {
-      const friend = Phaser.Utils.Array.GetRandom(p.team);
-      p.team.splice(p.team.indexOf(friend), 1);
-      p.lost.push(friend);
-      p.hearts = Math.max(p.hearts, 1);
-      result = 'saved';
-      text += '\n\nBut at the last second, someone steps in. ' + SURVIVORS[friend].death + ' 💔';
+    if (result === 'dead') {
+      const friend = this.pickTeammate(p, SAVE_CHANCE);
+      if (friend) {
+        this.loseFriend(p, friend);
+        p.hearts = Math.max(p.hearts, 1);
+        result = 'saved';
+        text += '\n\nBut at the last second, someone steps in. ' + SURVIVORS[friend].death + ' 💔';
+      }
     }
 
     if (result === 'dead') {
@@ -318,7 +420,7 @@ class GameScene extends Phaser.Scene {
     }
 
     if (repeated) text = 'The zombies have seen that move before and they are starting to catch on...\n\n' + text;
-    p.recap = text.replace(/^The zombies have seen.*\n\n/, '').split(/(?<=[.!?])\s/)[0];
+    if (!free) p.recap = text.replace(/^The zombies have seen.*\n\n/, '').split(/(?<=[.!?])\s/)[0];
     if (helpers.length && result !== 'dead') text += `\n\nHelped by: ${helpers.join(', ')}`;
 
     const look = {
@@ -328,16 +430,11 @@ class GameScene extends Phaser.Scene {
       dead: [`${p.name.toUpperCase()} IS DEAD!`, '#ff3333']
     }[result];
 
-    this.phase = 'result';
-    this.headerText.setText(look[0]).setColor(look[1]);
-    this.recapText.setText('');
-    this.storyText.setText(`${p.name}: "${this.typed}"`).setColor('#aaaaaa');
-    this.inputText.setY(this.storyText.y + this.storyText.height + 22);
-    this.inputText.setText(text).setColor(look[1]);
-    this.hintText.setText('');
-    this.footerText.setText('Press ENTER to continue');
-    this.drawStatus();
-    this.drawPanel();
+    const stillGoing = free && result !== 'dead';
+    if (free) { p.freeUsed++; p.stats.freeActions++; }
+    else p.turns++;
+    if (free && result === 'dead') p.turns++;
+    this.showResult(text, look, stillGoing);
   }
 
   searchSpot(p, parsed) {
@@ -373,6 +470,7 @@ class GameScene extends Phaser.Scene {
     } else if (type === 'call') {
       const key = Phaser.Utils.Array.GetRandom(Object.keys(ITEMS));
       p.items.push(key);
+      p.stats.itemsFound++;
       text += ` Inside the package is ${ITEMS[key].name}! ${ITEMS[key].desc}`;
     }
     return text;
@@ -392,31 +490,89 @@ class GameScene extends Phaser.Scene {
     this.startTurn();
   }
 
+  score(p, winner) {
+    const s = p.stats;
+    return p.turns * 10 + s.visited.length * 4 + s.itemsFound * 3 + s.vehiclesFound * 5 + s.recruited * 5 + s.fightsWon * 2 + (p.alive ? p.hearts * 5 : 0) + (p === winner ? 50 : 0);
+  }
+
+  ranking(winner) {
+    return this.players.slice().sort((a, b) =>
+      (b === winner) - (a === winner) || (b.alive - a.alive) || (b.diedRound - a.diedRound) || (b.turns - a.turns) || (this.score(b, winner) - this.score(a, winner)));
+  }
+
   gameOver(winner) {
     this.phase = 'over';
+    this.winner = winner;
+    this.drawBanner('🏁 GAME OVER 🏁', '#ffffff');
     if (this.players.length === 1) {
       const p = this.players[0];
-      this.headerText.setText(`${p.name} survived ${p.diedRound - 1} rounds!`).setColor('#ffcc33');
+      this.headerText.setText(`${p.name} survived ${p.turns - 1} turns!`).setColor('#ffcc33');
     } else {
       this.headerText.setText(`${winner.name} is the last survivor!`).setColor('#55ff55');
     }
 
-    const shorten = s => s.length > 50 ? s.slice(0, 50) + '...' : s;
-    const lines = [];
-    if (winner) {
-      lines.push(`🏆 ${winner.name} made it with ${winner.hearts} ❤, ${winner.items.length} items, and ${winner.team.length ? 'a team of ' + winner.team.map(k => SURVIVORS[k].name).join(', ') : 'no team'}.`, '');
-    }
-    this.players
-      .filter(p => !p.alive)
-      .sort((a, b) => b.diedRound - a.diedRound)
-      .forEach(p => lines.push(`💀 ${p.name}: died in round ${p.diedRound} at ${LOCATIONS[p.at].name}, after "${shorten(p.death)}"`));
+    const ranked = this.ranking(winner);
+    const pad = (s, n) => String(s).slice(0, n).padEnd(n);
+    const lines = [pad('#', 3) + pad('NAME', 12) + pad('TURNS', 7) + pad('RESULT', 14) + pad('ITEMS', 7) + pad('FRIENDS', 9) + pad('MILES', 7) + 'SCORE'];
+    ranked.forEach((p, i) => {
+      lines.push(pad(i + 1, 3) + pad(p.name, 12) + pad(p.turns, 7) + pad(p.alive ? 'SURVIVED' : `died rnd ${p.diedRound}`, 14) +
+        pad(p.stats.itemsFound, 7) + pad(p.stats.recruited, 9) + pad(p.stats.miles, 7) + this.score(p, winner));
+    });
+    lines.push('');
+    ranked.filter(p => !p.alive).forEach(p => {
+      const last = p.death.length > 45 ? p.death.slice(0, 45) + '...' : p.death;
+      lines.push(`💀 ${p.name} died at ${LOCATIONS[p.at].name} after "${last}"`);
+    });
+    lines.push('', 'Turns only count real moves. Small actions like talking or giving orders are not counted.');
 
+    this.saveHistory(ranked, winner);
     this.recapText.setText('');
+    this.storyText.setY(146);
     this.storyText.setText(lines.join('\n')).setColor('#ffffff');
     this.inputText.setText('');
     this.hintText.setText('');
-    this.panelText.setText('GAME OVER\n\nThanks for playing\nUNDEAD INC!');
-    this.footerText.setText('ENTER = play again with the same cousins     ESC = main menu');
+    this.panelText.setText('GAME OVER\n\nThanks for playing UNDEAD INC!\n\nPress S to save a spreadsheet of everyone\'s stats (this game and every earlier game on this computer).\n\nIt goes to your Downloads folder as undead-inc-results.csv. Open it with Excel or Google Sheets.');
+    this.footerText.setText('S = save spreadsheet     ENTER = play again with the same cousins     ESC = main menu');
     this.drawStatus();
+  }
+
+  statRows(ranked, winner) {
+    const date = new Date().toLocaleString();
+    return ranked.map((p, i) => [
+      date, this.players.length, i + 1, p.name, p.alive ? 'Survived' : 'Died', p.alive ? '' : p.diedRound, p.turns, p.stats.freeActions,
+      p.alive ? p.hearts : 0, p.stats.visited.length, p.stats.miles, p.stats.itemsFound, p.stats.vehiclesFound, p.stats.recruited,
+      p.stats.friendsLost, p.stats.fightsWon, p.stats.timesHurt, p.alive ? '' : p.death, this.score(p, winner)
+    ]);
+  }
+
+  loadHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveHistory(ranked, winner) {
+    const history = this.loadHistory();
+    const game = history.length ? Math.max(...history.map(r => r[0])) + 1 : 1;
+    this.thisGame = this.statRows(ranked, winner).map(r => [game, ...r]);
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history.concat(this.thisGame)));
+    } catch (e) {}
+  }
+
+  downloadSpreadsheet() {
+    const header = ['Game #', 'Date', 'Players', 'Place', 'Name', 'Result', 'Round Died', 'Full Turns', 'Small Actions', 'Hearts Left', 'Places Visited', 'Miles Traveled', 'Items Found', 'Vehicles Found', 'Survivors Recruited', 'Survivors Lost', 'Fights Won', 'Times Hurt', 'Last Action', 'Score'];
+    let rows = this.loadHistory();
+    if (!rows.length) rows = this.thisGame;
+    const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
+    link.download = 'undead-inc-results.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    this.footerText.setText('✅ Saved! Look in your Downloads folder for undead-inc-results.csv\nENTER = play again     ESC = main menu');
   }
 }

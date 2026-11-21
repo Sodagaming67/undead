@@ -262,7 +262,7 @@ const ZOMBIE_WORDS = ['zombie', 'monster', 'undead', 'horde', 'walker', 'corpse'
 
 const PRIORITY = ['fight', 'run', 'drive', 'climb', 'hide', 'sneak', 'barricade', 'trick', 'call', 'heal', 'help', 'supplies', 'dumb'];
 
-const IDEAS = 'Try: run · hide · fight · climb · sneak · trick · barricade · search · help · call · heal · talk to people · "go into" a store or room · "go to" a place · "drive/ride to" a place';
+const IDEAS = 'Try: run · hide · fight · climb · sneak · trick · barricade · search · help · call · heal · "go into" a store or room · "go to" a place · "drive/ride to" a place · "team protect/fight/hide/follow"';
 
 for (const type in MORE_WORDS) ACTIONS[type].words.push(...MORE_WORDS[type]);
 ACTIONS.dumb.words.push(...MORE_DUMB.words);
@@ -310,7 +310,8 @@ function knownWords() {
     for (const sk in LOCATIONS[k].spots) all.push(...LOCATIONS[k].spots[sk].aliases);
   }
   for (const k in VEHICLE_WORDS) all.push(...VEHICLE_WORDS[k]);
-  all.push(...RIDE_WORDS, ...VEHICLE_NOUNS);
+  all.push(...RIDE_WORDS, ...VEHICLE_NOUNS, ...TEAM_WORDS);
+  for (const k in ORDER_WORDS) all.push(...ORDER_WORDS[k]);
   for (const k in SURVIVORS) all.push(...SURVIVORS[k].aliases);
   for (const k in ITEM_WORDS) all.push(...ITEM_WORDS[k]);
   knownList = [...new Set(all.filter(w => !w.includes(' ')))];
@@ -411,6 +412,17 @@ function parseAction(typed, p) {
   const survivor = survivorHere(p);
   const missing = checkMissingSurvivor(ctx, p);
   if (missing) return { hint: missing };
+
+  const named = p.team.filter(k => SURVIVORS[k].aliases.some(a => hits(ctx, a)));
+  const toTeam = named.length > 0 || countHits(ctx, TEAM_WORDS) > 0;
+  const order = ['protect', 'hide', 'fight', 'follow'].find(o => countHits(ctx, ORDER_WORDS[o]) > 0);
+  const myOwnMove = /^ (i|im|ill|me|lets|we)\b/.test(t) && !/\b(tell|order|ask|command)\b/.test(t);
+  if (toTeam && order && p.team.length && !myOwnMove) {
+    return { type: 'order', who: named.length ? named : p.team.slice(), order };
+  }
+  if (named.length && !order && t.trim().split(' ').length <= 3) {
+    return { hint: `Tell ${SURVIVORS[named[0]].name} what to do: protect, fight, hide, or follow. For example: "${SURVIVORS[named[0]].aliases[0]} protect me".` };
+  }
   if (survivor && SURVIVORS[survivor].aliases.some(a => hits(ctx, a))) return { type: 'recruit', survivor };
 
   const scores = {};
@@ -434,6 +446,7 @@ function parseAction(typed, p) {
   if (best === 'supplies' && searching && countHits(ctx, VEHICLE_NOUNS) > 0) {
     const inside = p.spot || Object.keys(here.spots).find(k => here.spots[k].aliases.some(a => hits(ctx, a)));
     if (inside) return { hint: `There are no vehicles inside ${spotLabel(here.spots[inside].name)}. Vehicles are only found out on the roads. Head outside first, then search the street.` };
+    if (p.streetSearched.includes(p.at)) return { hint: `${p.name} already checked every car and driveway around ${here.name}. Vehicles are still out there on other streets, or you might find one on your next trip.` };
     return { type: 'supplies', street: true };
   }
 
@@ -502,7 +515,7 @@ function moveOdds(odds, from, to, amount) {
   odds[to] += moved;
 }
 
-function rollOutcome(baseOdds, boost, armor, round, repeated, miles = 0) {
+function rollOutcome(baseOdds, boost, armor, round, repeated, miles = 0, extraDanger = 0) {
   const odds = baseOdds.slice();
   moveOdds(odds, 2, 0, boost / 2);
   moveOdds(odds, 1, 0, boost / 2);
@@ -511,6 +524,8 @@ function rollOutcome(baseOdds, boost, armor, round, repeated, miles = 0) {
   if (armor) moveOdds(odds, 2, 1, 12);
   moveOdds(odds, 0, 2, (round - 1) * 4);
   if (repeated) moveOdds(odds, 0, 2, 15);
+  moveOdds(odds, 0, 1, extraDanger);
+  moveOdds(odds, 0, 2, extraDanger);
 
   const roll = Math.random() * 100;
   return roll < odds[0] ? 'good' : roll < odds[0] + odds[1] ? 'hurt' : 'dead';
