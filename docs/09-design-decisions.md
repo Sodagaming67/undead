@@ -48,3 +48,22 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 - If nothing matches, the game asks you to retype instead of rolling a random outcome. This was the main cause of confusing answers before.
 - Survivors have a 50% chance to sacrifice themselves when you would die. This adds drama and makes recruiting worth it.
 **What was ruled out:** A shared world for all cousins (unfair looting). Stacking all item boosts (too easy). An AI to read sentences (costs money).
+
+### Trick-Proof Word-Finder
+
+**What was asked:** Add a lot more words so the word-finder is nearly impossible to trick.
+**What was built:** `src/words.js` holds the extra word lists, place misspellings, cheat words, fake gear, item names, "don't" words, and a list of normal English words that should never be treated as typos. `stories.js` merges them into the main lists when the game loads, then:
+1. cleans up the text (removes apostrophes, keeps sentence breaks),
+2. removes "don't X" parts,
+3. blocks cheats,
+4. checks survivors and gear,
+5. scores every action type (ignoring a word when a longer phrase containing it also matched, so "frying pan" does not count twice),
+6. picks the winner.
+
+**Why this way:**
+- Typo matching only kicks in for words the game does not already know, and only when the first letter matches. That stops real words like "night" or "fright" from being read as "fight".
+- The "don't" removal stops at a comma, "and", "but", "so" or "I", so "don't fight, just hide" keeps the "hide" part.
+- Cheats, missing gear and missing survivors all give a hint and let the player retype instead of punishing them. That keeps it fun for kids while still not letting the trick work.
+- Cheat words must match exactly, so "wand" never matches "wander".
+
+**What was ruled out:** A real AI to understand sentences (costs money). Punishing cheats with instant death (would feel unfair to younger cousins). Typo matching on short words under 5 letters (too many false matches).

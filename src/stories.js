@@ -85,7 +85,7 @@ const ACTIONS = {
   },
   barricade: {
     odds: [60, 30, 10],
-    words: ['barricad', 'lock', 'block', 'board up', 'boards', 'board', 'fort', 'nail', 'shut', 'close', 'seal', 'blockade', 'furniture', 'couch', 'sofa', 'desk', 'table', 'dresser', 'bookshelf', 'wedge', 'chain', 'secure', 'fortify', 'build a wall', 'wall', 'brace', 'hold the door', 'stack', 'pile up', 'safe room', 'panic room', 'tape', 'door', 'gate', 'bolt the', 'reinforce', 'plank', 'build', 'defend', 'defense', 'hold them off', 'keep them out'],
+    words: ['barricad', 'lock', 'block', 'board up', 'boards', 'board', 'fort', 'nail', 'shut', 'close', 'seal', 'blockade', 'furniture', 'couch', 'sofa', 'desk', 'table', 'dresser', 'bookshelf', 'wedge', 'chain', 'secure', 'fortify', 'build a wall', 'wall', 'brace', 'hold the door', 'stack', 'pile up', 'safe room', 'panic room', 'tape', 'door', 'gate', 'bolt the', 'reinforce', 'plank', 'defend', 'defense', 'hold them off', 'keep them out'],
     good: [
       '{name} drags furniture, boards and anything heavy in front of the doors and windows. The zombies bang and moan outside all night, but they cannot get in. {name} gets some rest.',
       'Locked, blocked and boarded up. {name} builds a fort so strong the zombies eventually just give up and wander away.',
@@ -192,7 +192,7 @@ const ACTIONS = {
   dumb: {
     odds: [5, 15, 80],
     words: ['sleep', 'nap', 'dance', 'danc', 'scream', 'give up', 'gave up', 'do nothing', 'nothing', 'cry', 'sing', 'selfie', 'party', 'sit down', 'lie down', 'lay down', 'take a bath', 'shower', 'watch tv', 'video game', 'fortnite', 'tiktok', 'karaoke', 'faint', 'pass out', 'surrender', 'wait', 'stand there', 'stay there', 'juggl', 'moonwalk', 'yodel', 'floss', 'dab', 'cartwheel', 'backflip', 'somersault', 'meditat', 'order pizza', 'snore', 'yell at', 'insult', 'tell a joke', 'make fun', 'stare'],
-    strong: ['take a nap', 'go to sleep', 'fall asleep', 'run toward', 'run towards', 'run at them', 'run into the horde', 'walk up to', 'go up to', 'walk into', 'jump in', 'dive into', 'let them', 'let it bite', 'get bitten', 'become a zombie', 'eat a zombie', 'give up', 'surrender', 'do nothing', 'fight all of them', 'open the door for'],
+    strong: ['take a nap', 'go to sleep', 'fall asleep', 'run toward', 'run towards', 'run at them', 'run into the horde', 'walk up to', 'go up to', 'walk into', 'jump in', 'dive into', 'let it bite', 'get bitten', 'become a zombie', 'eat a zombie', 'give up', 'surrender', 'do nothing', 'fight all of them', 'open the door for'],
     affection: ['hug', 'kiss', 'pet', 'lick', 'befriend', 'say hi', 'hello', 'high five', 'poke', 'tickle', 'cuddle', 'shake hand', 'invite', 'talk', 'ask', 'join', 'make friends', 'smile at', 'wave at', 'bite', 'taste', 'eat', 'feed', 'adopt', 'marry', 'date', 'sing to', 'dance with', 'play with', 'reason with', 'negotiat', 'apologiz', 'compliment'],
     good: [
       'Somehow, against all logic, that actually worked. The zombies are just as confused as everyone else. {name} lives to see another day!'
@@ -231,11 +231,21 @@ const SACRIFICE_TEXT = 'But {friend} jumps in the way at the last second and pus
 
 const MOVE_WORDS = ['go', 'went', 'head', 'walk', 'travel', 'move', 'ride', 'rid', 'visit', 'enter', 'return', 'back to', 'over to', 'to the', 'toward', 'towards', 'make my way', 'get to', 'run', 'ran', 'sprint', 'flee', 'escap', 'skate', 'bike', 'hike', 'jog', 'dash', 'race', 'drive', 'driv', 'sneak to', 'crawl to', 'hurry', 'rush', 'leave for', 'set off', 'journey', 'way to', 'cross', 'look for', 'find'];
 
-const ZOMBIE_WORDS = ['zombie', 'them', 'it', 'monster', 'undead', 'horde', 'walker', 'corpse', 'ghoul', 'dead', 'creature', 'gary', 'henderson', 'lunch lady', 'hot dog', 'goalie', 'mannequin'];
+const ZOMBIE_WORDS = ['zombie', 'monster', 'undead', 'horde', 'walker', 'corpse', 'ghoul', 'dead', 'creature', 'gary', 'henderson', 'lunch lady', 'hot dog', 'goalie', 'mannequin'];
 
 const PRIORITY = ['fight', 'run', 'drive', 'climb', 'hide', 'sneak', 'barricade', 'trick', 'call', 'heal', 'help', 'supplies', 'dumb'];
 
 const IDEAS = 'Try: run · hide · fight · climb · sneak · drive · trick · barricade · search · help · call · heal · talk to survivors · "go to" a place';
+
+for (const type in MORE_WORDS) ACTIONS[type].words.push(...MORE_WORDS[type]);
+ACTIONS.dumb.words.push(...MORE_DUMB.words);
+ACTIONS.dumb.strong.push(...MORE_DUMB.strong);
+ACTIONS.dumb.affection.push(...MORE_DUMB.affection);
+MOVE_WORDS.push(...MORE_MOVE_WORDS);
+ZOMBIE_WORDS.push(...MORE_ZOMBIE_WORDS);
+for (const k in PLACE_TYPOS) LOCATIONS[k].aliases.push(...PLACE_TYPOS[k]);
+
+const GENERIC_ALIASES = ['dog', 'puppy', 'doggy', 'doggo', 'pup', 'officer', 'cop', 'doctor', 'nurse', 'mechanic', 'old man', 'hunter', 'skater', 'tank'];
 
 const SUFFIX = '(s|es|ed|d|ing|ning|ting|ping|ging|ming|bing|king|ling|er|ers|y|ily|ly)?';
 const regexCache = {};
@@ -243,7 +253,50 @@ function has(text, word) {
   if (!regexCache[word]) regexCache[word] = new RegExp('\\b' + word + SUFFIX + '\\b');
   return regexCache[word].test(text);
 }
-const countHits = (text, words) => words.filter(w => has(text, w)).length;
+const hasExact = (text, word) => new RegExp('\\b' + word + '\\b').test(text);
+
+function typoDistance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const temp = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = temp;
+    }
+  }
+  return row[b.length];
+}
+
+let knownList = null;
+function knownWords() {
+  if (knownList) return knownList;
+  const all = [...MOVE_WORDS, ...ZOMBIE_WORDS, ...PRONOUNS, ...CHEAT_WORDS, ...Object.keys(FAKE_GEAR), ...NEVER_FUZZY];
+  for (const type in ACTIONS) all.push(...ACTIONS[type].words, ...(ACTIONS[type].strong || []), ...(ACTIONS[type].affection || []));
+  for (const k in LOCATIONS) all.push(...LOCATIONS[k].aliases);
+  for (const k in SURVIVORS) all.push(...SURVIVORS[k].aliases);
+  for (const k in ITEM_WORDS) all.push(...ITEM_WORDS[k]);
+  knownList = [...new Set(all.filter(w => !w.includes(' ')))];
+  return knownList;
+}
+
+function makeContext(text) {
+  const known = knownWords();
+  const unknown = text.split(' ').filter(tok => tok.length >= 4 && !/\d/.test(tok) && !known.some(w => has(tok, w)));
+  return { text, unknown };
+}
+
+function hits(ctx, word) {
+  if (has(ctx.text, word)) return true;
+  if (word.length < 5 || word.includes(' ')) return false;
+  const maxDist = word.length >= 8 ? 2 : 1;
+  return ctx.unknown.some(tok => tok[0] === word[0] && Math.abs(tok.length - word.length) <= maxDist && typoDistance(tok, word) <= maxDist);
+}
+const countHits = (ctx, words) => {
+  const found = words.filter(w => hits(ctx, w));
+  return found.filter(w => !found.some(o => o !== w && o.includes(w))).length;
+};
 
 function survivorHere(p) {
   const key = LOCATIONS[p.at].survivor;
@@ -251,27 +304,88 @@ function survivorHere(p) {
   return key;
 }
 
+const NEGATION_RE = new RegExp('\\b(' + NEGATIONS.join('|') + ')\\b((?:\\s+(?!and\\b|but\\b|so\\b|i\\b|then\\b|instead\\b|just\\b)[a-z0-9]+){1,4})', 'g');
+
+function cleanUp(typed) {
+  let t = typed.toLowerCase().replace(/['’]/g, '').replace(/[,.;!?]/g, ' | ').replace(/[^a-z0-9 |]/g, ' ').replace(/\s+/g, ' ');
+  t = t.replace(/\bnot a peep\b/g, ' silently ');
+  for (const [re, swap] of SPECIAL_PHRASES) t = t.replace(re, swap);
+  t = t.replace(NEGATION_RE, ' ');
+  return ' ' + t.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+}
+
+function checkGear(t, p) {
+  const prefix = '\\b(my|use|using|with|wield|wielding|swing|swinging|equip|hold|holding)\\s+(?:the |a |an |my |his |her )?';
+  for (const key in ITEM_WORDS) {
+    if (p.items.includes(key)) continue;
+    if (ITEM_WORDS[key].some(w => new RegExp(prefix + w + '\\b').test(t))) {
+      return `${p.name} doesn't have ${ITEMS[key].name} yet! Check the backpack on the right. (Type "search" to look for items here.)`;
+    }
+  }
+  for (const word in FAKE_GEAR) {
+    if (FAKE_GEAR[word] && p.items.includes(FAKE_GEAR[word])) continue;
+    if (new RegExp(prefix + word + '\\b').test(t)) {
+      return `${p.name} doesn't have a ${word}! You can only use things that are in your backpack (look on the right).`;
+    }
+  }
+  const hasWeapon = p.items.some(k => (ITEMS[k].boost || {}).fight);
+  if (!hasWeapon && new RegExp(prefix + 'weapons?\\b').test(t)) {
+    return `${p.name} doesn't have a weapon yet! Try searching places to find one, or fight with bare fists.`;
+  }
+  return null;
+}
+
+function checkMissingSurvivor(ctx, p) {
+  for (const key in SURVIVORS) {
+    if (p.team.includes(key) || survivorHere(p) === key) continue;
+    const names = SURVIVORS[key].aliases.filter(a => !GENERIC_ALIASES.includes(a));
+    if (names.some(a => hits(ctx, a))) {
+      return p.lost.includes(key)
+        ? `${SURVIVORS[key].name} is gone... 💔 ${p.name} will have to keep going without them.`
+        : `${SURVIVORS[key].name} isn't here! Survivors are hiding at different places around town.`;
+    }
+  }
+  return null;
+}
+
 function parseAction(typed, p) {
-  const t = typed.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ');
+  const t = cleanUp(typed);
   const here = LOCATIONS[p.at];
 
-  const scores = {};
-  for (const type of PRIORITY) scores[type] = countHits(t, ACTIONS[type].words);
-  const aimedAtZombie = countHits(t, ZOMBIE_WORDS) > 0;
-  scores.supplies += countHits(t, ACTIONS.supplies.strong);
-  scores.dumb += countHits(t, ACTIONS.dumb.strong) * 2;
-  if (aimedAtZombie) scores.dumb += countHits(t, ACTIONS.dumb.affection) * 2;
+  if (CHEAT_WORDS.some(w => hasExact(t, w))) {
+    return { hint: Phaser.Utils.Array.GetRandom(CHEAT_REPLIES).replaceAll('{name}', p.name) };
+  }
 
+  const ctx = makeContext(t);
   const survivor = survivorHere(p);
-  if (survivor && SURVIVORS[survivor].aliases.some(a => has(t, a))) return { type: 'recruit', survivor };
+  const missing = checkMissingSurvivor(ctx, p);
+  if (missing) return { hint: missing };
+  if (survivor && SURVIVORS[survivor].aliases.some(a => hits(ctx, a))) return { type: 'recruit', survivor };
+
+  const scores = {};
+  for (const type of PRIORITY) scores[type] = countHits(ctx, ACTIONS[type].words);
+  const searching = countHits(ctx, ACTIONS.supplies.strong);
+  scores.supplies += searching;
+  if (!searching) {
+    const gearProblem = checkGear(t, p);
+    if (gearProblem) return { hint: gearProblem };
+  }
+
+  const aimedAtZombie = countHits(ctx, ZOMBIE_WORDS) > 0 || (!survivor && countHits(ctx, PRONOUNS) > 0);
+  scores.dumb += countHits(ctx, ACTIONS.dumb.strong) * 2;
+  if (aimedAtZombie) scores.dumb += countHits(ctx, ACTIONS.dumb.affection) * 2;
 
   let best = null, bestScore = 0;
   for (const type of PRIORITY) {
     if (scores[type] > bestScore) { best = type; bestScore = scores[type]; }
   }
 
-  const place = Object.keys(LOCATIONS).find(k => k !== p.at && LOCATIONS[k].aliases.some(a => has(t, a)));
-  if (place && best !== 'dumb' && (countHits(t, MOVE_WORDS) > 0 || !best || ['run', 'drive', 'sneak'].includes(best))) {
+  const moving = countHits(ctx, MOVE_WORDS) > 0;
+  const place = Object.keys(LOCATIONS).find(k => k !== p.at && LOCATIONS[k].aliases.some(a => hits(ctx, a)));
+  if (!place && moving && (!best || best === 'run') && here.aliases.some(a => hits(ctx, a))) {
+    return { hint: `${p.name} is already at ${here.name}! Places nearby: ${here.neighbors.map(n => LOCATIONS[n].name).join(', ')}.` };
+  }
+  if (place && best !== 'dumb' && (moving || !best || ['run', 'drive', 'sneak'].includes(best))) {
     if (!here.neighbors.includes(place)) {
       return { hint: `${LOCATIONS[place].name} is too far away from here! From ${here.name} you can get to: ${here.neighbors.map(n => LOCATIONS[n].name).join(', ')}.` };
     }
@@ -279,7 +393,7 @@ function parseAction(typed, p) {
   }
 
   if (best !== 'dumb') {
-    const recruitScore = countHits(t, ACTIONS.recruit.words);
+    const recruitScore = countHits(ctx, ACTIONS.recruit.words);
     if (survivor && recruitScore > 0 && recruitScore >= bestScore) return { type: 'recruit', survivor };
     if (!best && recruitScore > 0) {
       return { hint: 'There is nobody here to talk to... except zombies, and they are terrible listeners. (Survivors can be found at some places around town!)' };

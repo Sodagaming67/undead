@@ -39,3 +39,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** A town map of 10 connected places, each with a long description, its own zombie situations, and items to find. 20 items (weapons boost fighting, others boost sneaking, healing, driving, calling, barricades; helmets and shields make you harder to kill). 7 survivors (including Biscuit the dog) who join your team, make actions safer, and may sacrifice themselves to save you. Side panel shows place, nearby places, backpack, team, and whether there is stuff left to find. "Last time" recap line keeps each cousin's story connected. Word-finder now has hundreds of words, understands "go to <place>", and asks you to try again instead of guessing when it does not understand. Screen is bigger (960x640) and scales to fit the window.
 **Files changed:** `src/world.js` (new), `src/stories.js`, `src/scenes/GameScene.js`, `src/scenes/SetupScene.js`, `src/main.js`, `index.html`
 **Design note:** → [Session 1 — Connected Story Update](09-design-decisions.md)
+
+### #4 — Word-Finder That Is Nearly Impossible to Trick
+
+**Asked:** "Can you add a lot more words to the word finder to make it nearly impossible to trick"
+**Status:** ✓ Done
+**What was built:** About 2,200 action words and phrases (up from about 700), including slang and common misspellings. Typo forgiveness ("atack", "barricde", "sneek", "hosptal" still work). Understands "don't / not / instead of" ("don't fight, just hide" = hide). Blocks superpowers and cheats (teleport, god mode, kill all the zombies, it was a dream...) with a "nice try" message and lets you retype. Checks your backpack, so "attack with my katana" or "use my shotgun" is refused if you don't have it. Checks that survivors you talk to are actually there. Says so if you try to go somewhere you already are.
+**Files changed:** `src/words.js` (new), `src/stories.js`, `index.html`
+**Design note:** → [Session 1 — Trick-Proof Word-Finder](09-design-decisions.md)
