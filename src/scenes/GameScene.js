@@ -80,7 +80,7 @@ class GameScene extends Phaser.Scene {
     lines.push('', `ROADS TO OTHER PLACES  (risk ${fast ? 'by ' + VEHICLES[fast].name.toLowerCase() : 'on foot'}):`);
     Object.keys(LOCATIONS).filter(k => k !== p.at).sort((a, b) => dist[a] - dist[b]).forEach(k => {
       const miles = Math.round(dist[k] * 10) / 10;
-      lines.push(`  ${LOCATIONS[k].name}: ${miles} mi, ${riskLabel(miles * factor)}`);
+      lines.push(`  ${LOCATIONS[k].name}: ${miles} mi, ${riskLabel(miles * factor)}${k === p.cameFrom ? ' + zombies on your trail' : ''}`);
     });
 
     lines.push('', 'VEHICLES:');
@@ -238,7 +238,11 @@ class GameScene extends Phaser.Scene {
   resolve() {
     const p = this.current;
     const loc = LOCATIONS[p.at];
-    const parsed = parseAction(this.typed, p);
+    const said = ' ' + this.typed.toLowerCase().replace(/[^a-z0-9 ]/g, ' ') + ' ';
+    const other = this.players.find(o => o !== p && o.name.trim().length > 1 && said.includes(' ' + o.name.toLowerCase().trim() + ' '));
+    const parsed = other
+      ? { hint: `${other.name} is off in their own story somewhere else in town. ${p.name} can't reach them, so make a move for ${p.name}!` }
+      : parseAction(this.typed, p);
     if (parsed.hint) {
       this.hint = parsed.hint;
       this.typed = '';
@@ -277,14 +281,14 @@ class GameScene extends Phaser.Scene {
     const armor = p.items.find(k => ITEMS[k].armor);
     if (armor) helpers.push(ITEMS[armor].short.toLowerCase());
 
+    const backtrack = type === 'travel' && parsed.dest === p.cameFrom;
     const route = type === 'travel' ? routeTo(p.at, parsed.dest) : null;
     const miles = route ? route.miles * (parsed.vehicle ? VEHICLES[parsed.vehicle].factor : 1) : 0;
 
     const repeated = !free && !['travel', 'supplies', 'enter'].includes(type) && p.last === type;
     if (!free) p.last = type;
-    const baseOdds = type === 'enter' ? (parsed.crash ? ACTIONS.drive.odds : [80, 15, 5]) : ACTIONS[style].odds;
-    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p));
-    if (type === 'enter' && parsed.spot === null) result = 'good';
+    const baseOdds = type === 'enter' ? (parsed.crash ? ACTIONS.drive.odds : [65, 25, 10]) : ACTIONS[style].odds;
+    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0));
 
     const weapon = p.items.reduce((best, k) => ((ITEMS[k].boost || {}).fight || 0) > (best ? ITEMS[best].boost.fight : 0) ? k : best, null);
     const destLoc = parsed.dest ? LOCATIONS[parsed.dest] : loc;
@@ -300,7 +304,9 @@ class GameScene extends Phaser.Scene {
       if (parsed.crash) text = pick(result === 'dead' ? TRAVEL_TEXT.crashDead : TRAVEL_TEXT.crash);
       else text = pick(result === 'good' ? (parsed.vehicle ? TRAVEL_TEXT[parsed.vehicle] : TRAVEL_TEXT.good) : TRAVEL_TEXT[result]);
       if (parsed.crash && result === 'hurt') text += ` ${p.name} got banged up in the crash.`;
+      if (backtrack) text = `The zombies that followed ${p.name} here are still on the trail back to ${destLoc.name}. ` + text;
       if (result !== 'dead') {
+        p.cameFrom = p.at;
         p.at = parsed.dest;
         p.spot = parsed.spot;
         p.justArrived = true;
@@ -317,8 +323,8 @@ class GameScene extends Phaser.Scene {
       }
     } else if (type === 'enter') {
       if (parsed.spot === null) {
-        text = pick(ENTER_TEXT.outside);
-        p.spot = null;
+        text = pick(result === 'good' ? ENTER_TEXT.outside : result === 'hurt' ? ENTER_TEXT.outsideHurt : ENTER_TEXT.outsideDead);
+        if (result !== 'dead') p.spot = null;
       } else {
         text = pick(parsed.crash ? (result === 'dead' ? ENTER_TEXT.crashDead : ENTER_TEXT.crash) : ENTER_TEXT[result]);
         if (result !== 'dead') {

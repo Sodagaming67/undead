@@ -98,3 +98,15 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 - The 2-small-action cap, the once-per-street vehicle search, and the camping danger (+6 hurt and +6 death per extra turn in the same place after the second) close the farming loopholes. Simulations showed campers and small-action spammers survive fewer turns than explorers.
 - A CSV download needs no accounts or paid tools and opens in any spreadsheet app.
 **What was ruled out:** A separate text box for team talk (one box is simpler for kids). Making small actions risk-free (would be farmable). Uploading results to Google Sheets (needs sign-in and an internet connection).
+
+### Cheater Test
+
+**What was asked:** Make sure stupid answers never give free good results, and test it like a cheater would.
+**What was built:** Self-harm and claim checks run first, on the text before the "don't" removal (so "I don't get hurt" is still caught). Then come the cheat check, the stuffing check after scoring, and a fake-destination check in the random-travel branch. In GameScene: an other-player-name check, entering/leaving rooms rolls with odds [65, 25, 10], and backtracking adds +12 danger.
+**Test results:**
+- A 115-answer cheater test (blocked / stupid / normal) passes 115/115.
+- 2,000-game simulations per strategy showed honest play has the best average score (47) and the best single game (196). Camping, room-hopping, small-action spam, heal spam, barricade spam, shuttling back and forth, and blocked claims all scored lower. Stupid answers averaged 1.2 turns.
+**Why this way:**
+- Self-harm phrases are handled gently and never acted out, because the game is played by kids and should not turn that into a joke or a game mechanic.
+- Refusing (with a retry) instead of punishing keeps it fair for younger cousins, while making sure the trick gains nothing.
+**What was ruled out:** Making the character die from self-harm phrases (it would depict it as a game action). Silently ignoring claims (players would not learn why it failed).

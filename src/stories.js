@@ -248,6 +248,8 @@ const ENTER_TEXT = {
   hurt: ['A zombie lunges out of a doorway as {name} heads for {spot}. {name} gets inside, but not without a scratch.'],
   dead: ['{spot} was full of zombies. {name} walked right into them.'],
   outside: ['{name} heads back outside, checking both ways first.'],
+  outsideHurt: ['{name} steps outside, right into a zombie waiting by the door. {name} shoves it away, but not before it gets a scratch in.'],
+  outsideDead: ['{name} opens the door to leave, and the street outside is packed with zombies. There is nowhere to go.'],
   crash: ['{name} guns the engine and drives straight through the doors into {spot}! Glass everywhere, zombies flattened. The car is wrecked, but {name} made it inside.'],
   crashDead: ['{name} tries to drive into {spot}, but the car gets stuck in the doorway. The zombies swarm it.']
 };
@@ -268,6 +270,7 @@ for (const type in MORE_WORDS) ACTIONS[type].words.push(...MORE_WORDS[type]);
 ACTIONS.dumb.words.push(...MORE_DUMB.words);
 ACTIONS.dumb.strong.push(...MORE_DUMB.strong);
 ACTIONS.dumb.affection.push(...MORE_DUMB.affection);
+ACTIONS.dumb.strong.push(...MORE_STUPID);
 MOVE_WORDS.push(...MORE_MOVE_WORDS);
 ZOMBIE_WORDS.push(...MORE_ZOMBIE_WORDS);
 for (const k in PLACE_TYPOS) LOCATIONS[k].aliases.push(...PLACE_TYPOS[k]);
@@ -310,7 +313,7 @@ function knownWords() {
     for (const sk in LOCATIONS[k].spots) all.push(...LOCATIONS[k].spots[sk].aliases);
   }
   for (const k in VEHICLE_WORDS) all.push(...VEHICLE_WORDS[k]);
-  all.push(...RIDE_WORDS, ...VEHICLE_NOUNS, ...TEAM_WORDS);
+  all.push(...RIDE_WORDS, ...VEHICLE_NOUNS, ...TEAM_WORDS, ...SELF_HARM_WORDS, ...CLAIM_WORDS, ...MORE_STUPID);
   for (const k in ORDER_WORDS) all.push(...ORDER_WORDS[k]);
   for (const k in SURVIVORS) all.push(...SURVIVORS[k].aliases);
   for (const k in ITEM_WORDS) all.push(...ITEM_WORDS[k]);
@@ -401,6 +404,10 @@ function missingVehicle(p, v) {
 }
 
 function parseAction(typed, p) {
+  const raw = ' ' + typed.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+  if (SELF_HARM_WORDS.some(w => hasExact(raw, w))) return { hint: SELF_HARM_REPLY.replaceAll('{name}', p.name) };
+  if (CLAIM_WORDS.some(w => hasExact(raw, w))) return { hint: CLAIM_REPLY.replaceAll('{name}', p.name) };
+
   const t = cleanUp(typed);
   const here = LOCATIONS[p.at];
 
@@ -416,7 +423,8 @@ function parseAction(typed, p) {
   const named = p.team.filter(k => SURVIVORS[k].aliases.some(a => hits(ctx, a)));
   const toTeam = named.length > 0 || countHits(ctx, TEAM_WORDS) > 0;
   const order = ['protect', 'hide', 'fight', 'follow'].find(o => countHits(ctx, ORDER_WORDS[o]) > 0);
-  const myOwnMove = /^ (i|im|ill|me|lets|we)\b/.test(t) && !/\b(tell|order|ask|command)\b/.test(t);
+  const besideFriend = named.some(k => SURVIVORS[k].aliases.some(a => new RegExp('\\b(behind|beside|next to|near|with|after|around|by) (the )?' + a + '\\b').test(t)));
+  const myOwnMove = (/^ (i|im|ill|me|lets|we)\b/.test(t) || besideFriend) && !/\b(tell|order|ask|command)\b/.test(t);
   if (toTeam && order && p.team.length && !myOwnMove) {
     return { type: 'order', who: named.length ? named : p.team.slice(), order };
   }
@@ -429,7 +437,7 @@ function parseAction(typed, p) {
   for (const type of PRIORITY) scores[type] = countHits(ctx, ACTIONS[type].words);
   const searching = countHits(ctx, ACTIONS.supplies.strong);
   scores.supplies += searching;
-  if (!searching) {
+  if (!searching && !countHits(ctx, ACTIONS.dumb.strong)) {
     const gearProblem = checkGear(t, p);
     if (gearProblem) return { hint: gearProblem };
   }
@@ -442,6 +450,8 @@ function parseAction(typed, p) {
   for (const type of PRIORITY) {
     if (scores[type] > bestScore) { best = type; bestScore = scores[type]; }
   }
+  const kinds = PRIORITY.filter(k => k !== 'dumb' && scores[k] > 0).length;
+  if (kinds >= 4 && best !== 'dumb') return { hint: STUFFING_REPLY.replaceAll('{name}', p.name) };
 
   if (best === 'supplies' && searching && countHits(ctx, VEHICLE_NOUNS) > 0) {
     const inside = p.spot || Object.keys(here.spots).find(k => here.spots[k].aliases.some(a => hits(ctx, a)));
@@ -502,6 +512,10 @@ function parseAction(typed, p) {
     return { hint: `Hmm, the game didn't understand what ${p.name} is trying to do. Try using an action word like run, hide, fight, climb, sneak, search, or "go to" a place.` };
   }
   if (best === 'run' || best === 'drive') {
+    const goingTo = t.match(/\b(?:go|goes|going|head|heading|walk|travel|run|drive|ride|skate|bike|sneak|move) (?:to|into|towards?) (?:the |a |an |my )?([a-z]+)/);
+    if (goingTo && !NOT_A_PLACE.includes(goingTo[1])) {
+      return { hint: `There's no "${goingTo[1]}" around here! Places in town: ${Object.values(LOCATIONS).map(l => l.name).join(', ')}.` };
+    }
     if (vehicle && !p.vehicles.includes(vehicle)) return { hint: missingVehicle(p, vehicle) };
     return { type: 'travel', dest: Phaser.Utils.Array.GetRandom(here.neighbors), spot: null, vehicle, crash: false };
   }

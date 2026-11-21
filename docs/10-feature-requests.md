@@ -73,3 +73,19 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 - Game over shows a ranked stats table. Press S to download `undead-inc-results.csv` (opens in Excel or Google Sheets) with every game played on this computer: turns, small actions, hearts, places visited, miles, items, vehicles, survivors recruited and lost, fights won, times hurt, last action, and score.
 **Files changed:** `src/scenes/GameScene.js`, `src/stories.js`, `src/words.js`, `src/main.js`, `src/scenes/SetupScene.js`
 **Design note:** → [Session 1 — Team Orders and Stats](09-design-decisions.md)
+
+### #7 — Advanced Cheater Test and Stupid-Answer Protection
+
+**Asked:** "Can you run an advanced cheater test by making sure the word generator is prepared for stupid answers and doesn't give out free good results. An example of a stupid answer is like 'I will kill myself'."
+**Status:** ✓ Done
+**What was built:**
+- Self-harm phrases ("kill myself", "kms", "want to die" and about 35 more) are refused with a calm message. The character never does it, the turn is not used, and the message reminds the player to talk to a trusted grown-up if they ever feel that way. (Before, "kill" made this count as a fight.)
+- "Claim" answers that try to choose the outcome ("I survive", "nothing bad happens", "I get a katana", "without getting hurt", "skip my turn") are refused.
+- Keyword stuffing (4 or more different action types in one answer) is refused with "pick ONE thing".
+- About 50 more stupid answers now count as dumb moves (jump off the roof, eat glass, drink gasoline, invite them in, throw away my weapon...).
+- "Go to the moon" style answers say that place doesn't exist instead of sending you somewhere random.
+- Typing another cousin's name is refused (each cousin is in their own story).
+- Loopholes closed: walking in and out of rooms is no longer almost risk-free (leaving a room used to be 100% safe), and going straight back to the place you just came from is extra dangerous ("zombies on your trail").
+- "Hide behind Coach" or "fight with Barry" now counts as YOUR move, not an order for the teammate.
+**Files changed:** `src/words.js`, `src/stories.js`, `src/scenes/GameScene.js`
+**Design note:** → [Session 1 — Cheater Test](09-design-decisions.md)
