@@ -100,8 +100,14 @@ const MAP_LABEL = {
   sports: [30, 10, 'start'], mall: [0, 46, 'middle'], hospital: [32, 4, 'start'], woods: [-30, 4, 'end'], tower: [0, -32, 'middle']
 };
 const SVG_NS = 'http://www.w3.org/2000/svg';
-Object.assign(MAP_POS, { forest_pines: [190, 140], forest_blackthorn: [390, 128], forest_deadfall: [180, 238], forest_hollow: [512, 252] });
-const FOREST_SIZE = { forest_pines: [30, 20], forest_blackthorn: [70, 38], forest_deadfall: [48, 34], forest_hollow: [30, 24] };
+Object.assign(MAP_POS, { forest_pines: [190, 140], forest_blackthorn: [390, 128], forest_deadfall: [180, 238], forest_grave: [322, 240], forest_hollow: [512, 252], crossing: [283, 283] });
+const FOREST_SHAPE = {
+  forest_pines: ['house', 'school', 'park'],
+  forest_blackthorn: ['school', 'police', 'hospital', 'mall', 'sports', 'park'],
+  forest_deadfall: ['house', 'park', 'crossing', 'gas'],
+  forest_grave: ['park', 'sports', 'mall', 'crossing'],
+  forest_hollow: ['crossing', 'mall', 'hospital', 'tower', 'woods']
+};
 
 function zombieColor(n, normal) {
   const r = n / normal;
@@ -342,6 +348,9 @@ class AdminPanel {
     const grid = this.svg('pattern', { id: 'ad-grid', width: 20, height: 20, patternUnits: 'userSpaceOnUse' }, defs);
     this.svg('path', { d: 'M20 0H0V20', fill: 'none', stroke: '#18202a', 'stroke-width': 1 }, grid);
     this.svg('rect', { width: 660, height: 380, fill: 'url(#ad-grid)' }, map);
+    const trees = this.svg('pattern', { id: 'ad-trees', width: 16, height: 14, patternUnits: 'userSpaceOnUse' }, defs);
+    this.svg('rect', { width: 16, height: 14, fill: '#13261a' }, trees);
+    this.svg('path', { d: 'M4 1L7.5 8H0.5Z M12 7L15.5 14H8.5Z', fill: '#2b5a38' }, trees);
 
     const select = k => () => { this.selected = k; this.render(); };
     const mid = k => {
@@ -352,8 +361,9 @@ class AdminPanel {
     const roads = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isRoad);
     const forests = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest);
     forests.forEach(k => {
-      const [x, y] = MAP_POS[k];
-      this.svg('ellipse', { cx: x, cy: y, rx: FOREST_SIZE[k][0], ry: FOREST_SIZE[k][1], fill: '#1d3b27', 'fill-opacity': 0.55, stroke: '#2f5d3d', 'stroke-dasharray': '3 4' }, map);
+      const points = FOREST_SHAPE[k].map(n => MAP_POS[n].join(',')).join(' ');
+      const area = this.svg('polygon', { points, class: 'place', fill: 'url(#ad-trees)', stroke: k === this.selected ? '#2bb3a3' : '#1f3d2a', 'stroke-width': k === this.selected ? 6 : 2, 'stroke-linejoin': 'round' }, map);
+      area.addEventListener('click', select(k));
     });
     roads.forEach(k => {
       const [a, b] = LOCATIONS[k].ends;
@@ -378,10 +388,7 @@ class AdminPanel {
       const sel = k === this.selected;
       const g = this.svg('g', { class: 'place' }, map);
       g.addEventListener('click', select(k));
-      this.svg('ellipse', { cx: x, cy: y, rx: FOREST_SIZE[k][0], ry: FOREST_SIZE[k][1], fill: 'transparent', stroke: sel ? '#2bb3a3' : 'none', 'stroke-width': 3 }, g);
-      this.svgText(g, x - 14, y - 4, '🌲', { 'font-size': 14 });
-      this.svgText(g, x + 14, y - 4, '🌲', { 'font-size': 14 });
-      this.svgText(g, x, y - 10, '🌲', { 'font-size': 16 });
+      this.svgText(g, x, y - 3, '🌲', { 'font-size': 14 });
       this.svg('rect', { x: x - 17, y: y + 1, width: 34, height: 16, rx: 8, fill: sel ? '#2bb3a3' : '#0b0f14', stroke: zombieColor(n, normalZombies(k)), 'stroke-width': 1.5 }, g);
       this.svgText(g, x, y + 13, String(n), { 'font-size': 10.5, 'font-weight': 700, fill: sel ? '#062b27' : '#e8eaed' });
       this.svgText(g, x, y + (k === 'forest_pines' ? 27 : 30), LOCATIONS[k].name, { 'font-size': 10, 'font-weight': 600, 'font-style': 'italic', fill: '#69db7c', stroke: '#0b0f14', 'stroke-width': 3, 'paint-order': 'stroke' });

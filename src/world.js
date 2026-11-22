@@ -308,7 +308,8 @@ const FORESTS = {
   forest_pines: { name: 'Crooked Pines', words: ['crooked pines', 'crooked', 'pines'], roads: [['house', 'school'], ['house', 'park'], ['park', 'school']], loot: ['crossbow'] },
   forest_blackthorn: { name: 'Blackthorn Forest', words: ['blackthorn'], roads: [['police', 'school'], ['hospital', 'police'], ['hospital', 'mall'], ['mall', 'sports'], ['park', 'sports'], ['park', 'school']], loot: ['katana'] },
   forest_deadfall: { name: 'Deadfall Thicket', words: ['deadfall'], roads: [['gas', 'house'], ['gas', 'mall'], ['house', 'park'], ['park', 'woods']], loot: ['machete'] },
-  forest_hollow: { name: 'Hollow Timber', words: ['hollow timber', 'timber'], roads: [['hospital', 'mall'], ['hospital', 'tower'], ['tower', 'woods']], loot: ['kevlar_vest'] }
+  forest_grave: { name: 'Gravewood', words: ['gravewood', 'grave wood'], roads: [['park', 'sports'], ['mall', 'sports'], ['gas', 'mall'], ['park', 'woods']], loot: ['riot_shield'] },
+  forest_hollow: { name: 'Hollow Timber', words: ['hollow timber', 'timber'], roads: [['hospital', 'mall'], ['hospital', 'tower'], ['tower', 'woods'], ['gas', 'mall'], ['park', 'woods']], loot: ['kevlar_vest'] }
 };
 
 for (const k in FORESTS) {

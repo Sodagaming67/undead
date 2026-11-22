@@ -161,3 +161,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** Four patches of dark woods sit in the spaces between the roads: Crooked Pines, Blackthorn Forest, Deadfall Thicket and Hollow Timber. From a road beside them, type something like "run into the trees", "hide in the bushes", "run into the woods" or a forest's name to go in. On Trail Road, "the woods" still means Whispering Woods. The side panel on a road lists any woods beside it. Inside the woods, "run back to the road", "get out of the woods" or just "run" takes you out to one of the roads around it. You can also travel straight to a town place, but vehicles can't go through the trees. Going in, staying, and getting out are all extremely dangerous: about 1 in 3 moves kills you and about 1 in 2 hurts you, and it gets worse every turn you stay. As a reward, each forest has a Bone Clearing with a great item (crossbow, katana, machete or bulletproof vest) and a Hollow Tree with a first aid kit. The woods have 50 zombies each and show on the admin map as green tree patches the admin can click and change. The admin can also teleport players into them.
 **Files changed:** `src/world.js`, `src/stories.js`, `src/scenes/GameScene.js`, `src/admin.js`
 **Design note:** → [Session 1 — Deadly Woods](09-design-decisions.md)
+
+### #17 — Woods Fill Every Space Between the Roads
+
+**Asked:** "Make the woods space fill in every empty space between roads."
+**Status:** ✓ Done
+**What was built:** On the admin map, each forest is now the full shape of the space between its roads, filled with a dark green pine tree pattern, instead of a small oval. Clicking anywhere in a forest selects it. The one empty space that had no woods (between Maple Park, Big Al's Sporting Goods, Riverside Mall and Trail Road) is now a fifth forest, **Gravewood**, with a riot shield in its Bone Clearing. Hollow Timber now fills the whole space down to Route 9, Trail Road and the Old Logging Road, so you can also enter it from those roads.
+**Files changed:** `src/admin.js`, `src/world.js`
+**Design note:** → [Session 1 — Woods Fill the Gaps](09-design-decisions.md)
