@@ -110,3 +110,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 - Self-harm phrases are handled gently and never acted out, because the game is played by kids and should not turn that into a joke or a game mechanic.
 - Refusing (with a retry) instead of punishing keeps it fair for younger cousins, while making sure the trick gains nothing.
 **What was ruled out:** Making the character die from self-harm phrases (it would depict it as a game action). Silently ignoring claims (players would not learn why it failed).
+
+### Roads as Places
+
+**What was asked:** Stay on the road when you find a vehicle there.
+**What was built:** `world.js` generates a `LOCATIONS` entry per road segment (`road_<a>_<b>`, `isRoad: true`, `ends`, `miles`) with shared `ROAD_EVENTS` and one "Abandoned Cars" spot. `routeFrom` adds two half-length edges from a road to its ends, so routes and distances work from the middle of a road. `routeTo` now also returns the node `path`, so the game knows which road segment you were on when you found the vehicle. `TOWN` lists only real places, for the panel and for travel.
+**Why this way:** Making roads normal locations reused all the existing code (events, spots, searching, hiding, camping danger, death screen) instead of adding a separate "on the road" mode with its own rules. Finding a vehicle no longer stops a car trip, because a car is already the fastest option.
+**What was ruled out:** Letting players type "go to Route 9" (road names repeat across segments, so it would be ambiguous).

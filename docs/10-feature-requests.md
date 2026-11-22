@@ -89,3 +89,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 - "Hide behind Coach" or "fight with Barry" now counts as YOUR move, not an order for the teammate.
 **Files changed:** `src/words.js`, `src/stories.js`, `src/scenes/GameScene.js`
 **Design note:** → [Session 1 — Cheater Test](09-design-decisions.md)
+
+### #8 — Stay on the Road When You Find a Vehicle
+
+**Asked:** "Fix the issue where if you get a vehicle on the highway, instead of staying on the highway, you teleport back to your previous location." (Clarified: when you find a vehicle on the road, stay out on that road instead of being at a place.)
+**Status:** ✓ Done
+**What was built:** Every road segment (13) is now a place you can be. Each has its own zombie events, an intro, and "Abandoned Cars" you can search or hide behind, with a little loot. Finding a vehicle while traveling (on foot, bike, skateboard or motorcycle) stops you on that road. Finding one with "search the street" takes you out onto a nearby road. From a road, distances and risks to every town place are measured from the middle of the road. The opening story now only shows once per player.
+**Files changed:** `src/world.js`, `src/stories.js`, `src/scenes/GameScene.js`
+**Design note:** → [Session 1 — Roads as Places](09-design-decisions.md)

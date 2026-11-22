@@ -67,9 +67,11 @@ class GameScene extends Phaser.Scene {
   drawPanel() {
     const p = this.current;
     const loc = LOCATIONS[p.at];
-    const lines = [`📍 ${loc.name.toUpperCase()}`, p.spot ? `     inside: ${loc.spots[p.spot].name}` : '     outside, on the street'];
+    const lines = loc.isRoad
+      ? [`🛣 ON ${loc.name.toUpperCase()}`, `     between ${LOCATIONS[loc.ends[0]].name} and ${LOCATIONS[loc.ends[1]].name}`]
+      : [`📍 ${loc.name.toUpperCase()}`, p.spot ? `     inside: ${loc.spots[p.spot].name}` : '     outside, on the street'];
     if (p.stay >= 2) lines.push(`     ⚠ zombies gathering (here ${p.stay + 1} turns in a row)`);
-    lines.push('', 'STORES & ROOMS HERE  (🔎 = stuff to find):');
+    lines.push('', loc.isRoad ? 'ON THIS ROAD  (🔎 = stuff to find):' : 'STORES & ROOMS HERE  (🔎 = stuff to find):');
     for (const k in loc.spots) {
       lines.push(`  ${k === p.spot ? '▶' : '•'} ${loc.spots[k].name}${this.itemsLeft(p, p.at, k) > 0 ? '  🔎' : ''}`);
     }
@@ -78,7 +80,7 @@ class GameScene extends Phaser.Scene {
     const factor = fast ? VEHICLES[fast].factor : 1;
     const { dist } = routeFrom(p.at);
     lines.push('', `ROADS TO OTHER PLACES  (risk ${fast ? 'by ' + VEHICLES[fast].name.toLowerCase() : 'on foot'}):`);
-    Object.keys(LOCATIONS).filter(k => k !== p.at).sort((a, b) => dist[a] - dist[b]).forEach(k => {
+    TOWN.filter(k => k !== p.at).sort((a, b) => dist[a] - dist[b]).forEach(k => {
       const miles = Math.round(dist[k] * 10) / 10;
       lines.push(`  ${LOCATIONS[k].name}: ${miles} mi, ${riskLabel(miles * factor)}${k === p.cameFrom ? ' + zombies on your trail' : ''}`);
     });
@@ -103,17 +105,22 @@ class GameScene extends Phaser.Scene {
 
   startTurn() {
     const p = this.current = this.players[this.turn];
-    const loc = LOCATIONS[p.at];
     p.freeUsed = 0;
     p.stay = p.prevTurnAt === p.at ? p.stay + 1 : 0;
     p.prevTurnAt = p.at;
+    this.prepareStory(p);
+    this.showTurn();
+  }
 
+  prepareStory(p) {
+    const loc = LOCATIONS[p.at];
     const idx = p.eventIdx[p.at] || 0;
     this.event = loc.events[idx % loc.events.length];
     p.eventIdx[p.at] = idx + 1;
 
     const parts = [];
-    if (this.round === 1 && p.justArrived) parts.push(PROLOGUE);
+    if (!p.sawPrologue) parts.push(PROLOGUE);
+    p.sawPrologue = true;
     if (p.justArrived) parts.push(loc.intro);
     if (p.spot && p.spotFresh) parts.push(`You are inside ${spotLabel(loc.spots[p.spot].name)}. ${loc.spots[p.spot].desc}`);
     p.justArrived = false;
@@ -128,7 +135,16 @@ class GameScene extends Phaser.Scene {
       parts.push(`${SURVIVORS[survivor].intro} (Try typing something like "ask ${first[0].toUpperCase() + first.slice(1)} to join". Talking is a small action, so it won't use up your turn.)`);
     }
     this.turnStory = parts.join('\n\n');
-    this.showTurn();
+  }
+
+  pullOver(p, road) {
+    p.cameFrom = p.at;
+    p.at = road;
+    p.spot = null;
+    p.justArrived = true;
+    p.spotFresh = false;
+    const r = LOCATIONS[road];
+    return `${p.name} is now out on ${r.name}, between ${LOCATIONS[r.ends[0]].name} and ${LOCATIONS[r.ends[1]].name}.`;
   }
 
   showTurn() {
@@ -305,7 +321,14 @@ class GameScene extends Phaser.Scene {
       else text = pick(result === 'good' ? (parsed.vehicle ? TRAVEL_TEXT[parsed.vehicle] : TRAVEL_TEXT.good) : TRAVEL_TEXT[result]);
       if (parsed.crash && result === 'hurt') text += ` ${p.name} got banged up in the crash.`;
       if (backtrack) text = `The zombies that followed ${p.name} here are still on the trail back to ${destLoc.name}. ` + text;
-      if (result !== 'dead') {
+      const found = result === 'good' && !parsed.crash && parsed.vehicle !== 'car' && Math.random() < 0.2 ?this.giveVehicle(p, Object.keys(VEHICLES)) : null;
+      if (found) {
+        const road = LOCATIONS[p.at].isRoad ? p.at : roadKey(route.path[0], route.path[1]);
+        const r = LOCATIONS[road];
+        text = `${p.name} sets off toward ${destLoc.name}. Partway down ${r.name}, ${p.name} spots ${VEHICLES[found].found}. ${p.name} takes it and pulls over to check it out! (You now have a ${VEHICLES[found].name.toLowerCase()}: ${VEHICLES[found].how}.) `;
+        p.stats.miles = Math.round((p.stats.miles + r.miles / 2) * 10) / 10;
+        text += this.pullOver(p, road);
+      } else if (result !== 'dead') {
         p.cameFrom = p.at;
         p.at = parsed.dest;
         p.spot = parsed.spot;
@@ -316,9 +339,6 @@ class GameScene extends Phaser.Scene {
         if (parsed.crash) {
           p.vehicles.splice(p.vehicles.indexOf('car'), 1);
           text += ' (The car is wrecked. You will need to find another one.)';
-        } else if (result === 'good' && Math.random() < 0.2) {
-          const v = this.giveVehicle(p, Object.keys(VEHICLES));
-          if (v) text += ` On the way, along ${route.roads[0]}, ${p.name} spots ${VEHICLES[v].found}. ${p.name} takes it! (You now have a ${VEHICLES[v].name.toLowerCase()}: ${VEHICLES[v].how}.)`;
         }
       }
     } else if (type === 'enter') {
@@ -362,6 +382,11 @@ class GameScene extends Phaser.Scene {
         text = v
           ? `${p.name} checks the cars and driveways up and down the street and finds ${VEHICLES[v].found}! (You now have a ${VEHICLES[v].name.toLowerCase()}: ${VEHICLES[v].how}.)`
           : `${p.name} already has every kind of vehicle there is!`;
+        if (v && !LOCATIONS[p.at].isRoad) {
+          const road = roadKey(p.at, Phaser.Utils.Array.GetRandom(LOCATIONS[p.at].neighbors));
+          text += ` ${p.name} takes it out onto ${LOCATIONS[road].name} to try it out. ` + this.pullOver(p, road);
+          this.prepareStory(p);
+        }
       } else {
         text = result === 'good' ? fill(STREET_SEARCH_FAIL) : pick(ACTIONS.supplies[result]);
       }

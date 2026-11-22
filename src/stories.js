@@ -468,7 +468,7 @@ function parseAction(typed, p) {
   const localSpot = Object.keys(here.spots).find(k => here.spots[k].aliases.some(a => hits(ctx, a))) || null;
   let otherSpot = null;
   for (const k in LOCATIONS) {
-    if (k === p.at) continue;
+    if (k === p.at || LOCATIONS[k].isRoad) continue;
     const s = Object.keys(LOCATIONS[k].spots).find(sk => hits(ctx, LOCATIONS[k].spots[sk].aliases[0]));
     if (s) { otherSpot = { loc: k, spot: s }; break; }
   }

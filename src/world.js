@@ -272,19 +272,50 @@ const ROADS = [
   ['woods', 'tower', 1.3, 'Old Logging Road']
 ];
 
-for (const k in LOCATIONS) LOCATIONS[k].neighbors = [];
+const ROAD_EVENTS = [
+  { text: 'A pack of zombies stumbles out from between the abandoned cars, moaning. They have caught your scent and are spreading out across the lanes.', bonus: ['hide', 'sneak', 'drive'] },
+  { text: 'A car alarm suddenly goes off down the road. Every zombie in sight turns toward the noise, and some of them are between you and it.', bonus: ['sneak', 'trick', 'hide'] },
+  { text: 'A zombie in a torn road-worker vest drags itself out from under a truck, right next to you.', bonus: ['fight', 'run', 'drive'] },
+  { text: 'Fog rolls across the road. Shapes move between the cars, and you cannot tell which ones are zombies until they are close.', bonus: ['hide', 'sneak', 'climb'] },
+  { text: 'A huge horde is coming down the middle of the road, hundreds of them, slow but unstoppable. You have a minute, maybe two.', bonus: ['drive', 'run', 'hide', 'climb'] }
+];
+
+const ROAD_LOOT = [['water_bottle', 'road_map'], ['energy_drink', 'duct_tape'], ['canned_food', 'flashlight'], ['first_aid'], ['lighter', 'water_bottle'], ['road_map', 'energy_drink'], ['duct_tape', 'canned_food']];
+
+const roadKey = (a, b) => 'road_' + [a, b].sort().join('_');
+
+ROADS.forEach(([a, b, miles, road], i) => {
+  const half = Math.round(miles * 5) / 10;
+  LOCATIONS[roadKey(a, b)] = {
+    isRoad: true, ends: [a, b], miles, name: road, aliases: [],
+    intro: `${road} is a mess. Abandoned cars sit at odd angles across the lanes with their doors hanging open, and a traffic light blinks yellow over nothing. ${LOCATIONS[a].name} is ${half} miles one way and ${LOCATIONS[b].name} is ${half} miles the other.`,
+    events: ROAD_EVENTS,
+    spots: {
+      cars: { name: 'Abandoned Cars', aliases: ['abandoned cars', 'abandoned car', 'wrecked cars', 'wrecked car', 'glovebox', 'glove box'], desc: `Rows of empty cars with their doors open. Some still have bags and boxes in the back seats.`, items: ROAD_LOOT[i % ROAD_LOOT.length], good: ['hide', 'supplies'] }
+    }
+  };
+});
+
+for (const k in LOCATIONS) LOCATIONS[k].neighbors = LOCATIONS[k].isRoad ? LOCATIONS[k].ends.slice() : [];
 for (const [a, b] of ROADS) {
   LOCATIONS[a].neighbors.push(b);
   LOCATIONS[b].neighbors.push(a);
 }
 
+const TOWN = Object.keys(LOCATIONS).filter(k => !LOCATIONS[k].isRoad);
+
 function routeFrom(start) {
   const dist = { [start]: 0 }, prev = {}, done = new Set();
-  while (done.size < Object.keys(LOCATIONS).length) {
+  const edges = ROADS.slice();
+  if (LOCATIONS[start].isRoad) {
+    const half = LOCATIONS[start].miles / 2;
+    LOCATIONS[start].ends.forEach(end => edges.push([start, end, half, LOCATIONS[start].name]));
+  }
+  while (true) {
     const here = Object.keys(dist).filter(k => !done.has(k)).sort((a, b) => dist[a] - dist[b])[0];
     if (!here) break;
     done.add(here);
-    for (const [a, b, miles, road] of ROADS) {
+    for (const [a, b, miles, road] of edges) {
       const next = a === here ? b : b === here ? a : null;
       if (next && (dist[next] === undefined || dist[here] + miles < dist[next])) {
         dist[next] = dist[here] + miles;
@@ -297,11 +328,12 @@ function routeFrom(start) {
 
 function routeTo(start, dest) {
   const { dist, prev } = routeFrom(start);
-  const roads = [];
+  const roads = [], path = [dest];
   for (let at = dest; at !== start; at = prev[at].from) {
     if (roads[0] !== prev[at].road) roads.unshift(prev[at].road);
+    path.unshift(prev[at].from);
   }
-  return { miles: Math.round(dist[dest] * 10) / 10, roads };
+  return { miles: Math.round(dist[dest] * 10) / 10, roads, path };
 }
 
 function riskLabel(miles) {
