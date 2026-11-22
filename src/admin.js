@@ -69,10 +69,47 @@ const ADMIN_CSS = `
 .ad-kbd { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
 .ad-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #111827; color: #fff; border: 1px solid var(--border); padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; box-shadow: 0 20px 50px rgba(0,0,0,.5); z-index: 101; }
 .ad-toast[hidden] { display: none; }
+.ad-mapwrap { display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start; }
+.ad-map { width: 100%; height: auto; display: block; border-radius: 12px; background: #0b0f14; border: 1px solid var(--border); }
+.ad-map .place, .ad-map .road-hit { cursor: pointer; }
+.ad-map .place:hover circle.node { stroke: var(--text); }
+.ad-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.ad-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.ad-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.ad-zed { display: grid; gap: 14px; }
+.ad-zbox { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--surface-2); }
+.ad-zbox h3 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.ad-zname { font-size: 15px; font-weight: 650; margin-top: 4px; }
+.ad-zcount { font-size: 30px; font-weight: 700; letter-spacing: -.02em; display: flex; align-items: baseline; gap: 8px; margin: 2px 0 8px; }
+.ad-zcount small { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.ad-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.ad-row .ad-btn { flex: 1; padding: 0 8px; }
+.ad-range { width: 100%; margin: 10px 0; accent-color: var(--accent); }
+.ad-here { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+@media (max-width: 860px) { .ad-mapwrap { grid-template-columns: 1fr; } }
 @media (max-width: 860px) { .ad-layout { grid-template-columns: 1fr; } .ad-stats { grid-template-columns: repeat(2, 1fr); } .ad-forms { grid-template-columns: 1fr; } }
 `;
 
-const CROWN = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>';
+const MAP_POS = {
+  house: [120, 170], school: [190, 80], park: [260, 170], gas: [70, 300], police: [330, 50],
+  sports: [360, 210], mall: [450, 270], hospital: [510, 120], woods: [290, 340], tower: [600, 330]
+};
+const MAP_LABEL = {
+  house: [0, 42, 'middle'], school: [0, -36, 'middle'], park: [0, 42, 'middle'], gas: [0, 42, 'middle'], police: [0, -32, 'middle'],
+  sports: [30, 10, 'start'], mall: [0, 46, 'middle'], hospital: [32, 4, 'start'], woods: [-30, 4, 'end'], tower: [0, -32, 'middle']
+};
+const SVG_NS ='http://www.w3.org/2000/svg';
+
+function zombieColor(n, normal) {
+  const r = n / normal;
+  if (n === 0) return '#2bb3a3';
+  if (r < 0.75) return '#69db7c';
+  if (r < 1.5) return '#f3b664';
+  if (r < 3) return '#ff922b';
+  return '#f03e3e';
+}
+
+const CROWN ='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>';
 const LOCK = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 
 class AdminPanel {
@@ -200,7 +237,7 @@ class AdminPanel {
     layout.append(players, this.sidePanels());
 
     const body = this.el('div', 'ad-body');
-    body.append(stats, layout);
+    body.append(stats, this.mapPanel(), layout);
     sheet.append(top, body);
     this.root.append(sheet);
   }
@@ -262,6 +299,155 @@ class AdminPanel {
 
     card.append(head, meta, actions, forms);
     return card;
+  }
+
+  svg(tag, attrs, parent) {
+    const e = document.createElementNS(SVG_NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.append(e);
+    return e;
+  }
+
+  svgText(parent, x, y, text, attrs) {
+    const t = this.svg('text', { x, y, 'text-anchor': 'middle', 'font-family': 'Inter, system-ui, sans-serif', ...attrs }, parent);
+    t.textContent = text;
+    return t;
+  }
+
+  mapPanel() {
+    const s = this.scene;
+    if (!this.selected || !LOCATIONS[this.selected]) this.selected = s.current.at;
+    const panel = this.el('section', 'ad-panel');
+    const head = this.el('div', 'ad-panel-head');
+    head.append(this.el('h2', '', 'Town map'), this.el('span', 'ad-sub', 'Click a place or road to change its zombies'));
+
+    const map = this.svg('svg', { viewBox: '0 0 660 380', class: 'ad-map' });
+    const defs = this.svg('defs', {}, map);
+    const grid = this.svg('pattern', { id: 'ad-grid', width: 20, height: 20, patternUnits: 'userSpaceOnUse' }, defs);
+    this.svg('path', { d: 'M20 0H0V20', fill: 'none', stroke: '#18202a', 'stroke-width': 1 }, grid);
+    this.svg('rect', { width: 660, height: 380, fill: 'url(#ad-grid)' }, map);
+
+    const select = k => () => { this.selected = k; this.render(); };
+    const mid = k => {
+      const [a, b] = LOCATIONS[k].ends;
+      return [(MAP_POS[a][0] + MAP_POS[b][0]) / 2, (MAP_POS[a][1] + MAP_POS[b][1]) / 2];
+    };
+    const roads = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isRoad);
+    roads.forEach(k => {
+      const [a, b] = LOCATIONS[k].ends;
+      const color = zombieColor(s.zombies[k], normalZombies(k));
+      const line = { x1: MAP_POS[a][0], y1: MAP_POS[a][1], x2: MAP_POS[b][0], y2: MAP_POS[b][1] };
+      this.svg('line', { ...line, stroke: '#2a313c', 'stroke-width': 10, 'stroke-linecap': 'round' }, map);
+      this.svg('line', { ...line, stroke: color, 'stroke-width': k === this.selected ? 4 : 2, 'stroke-dasharray': '6 6', opacity: k === this.selected ? 1 : 0.7 }, map);
+    });
+    roads.forEach(k => {
+      const [x, y] = mid(k);
+      const g = this.svg('g', { class: 'place' }, map);
+      g.addEventListener('click', select(k));
+      const sel = k === this.selected;
+      this.svg('rect', { x: x - 15, y: y - 9, width: 30, height: 18, rx: 9, fill: sel ? '#2bb3a3' : '#161b22', stroke: zombieColor(s.zombies[k], normalZombies(k)), 'stroke-width': 1.5 }, g);
+      this.svgText(g, x, y + 4, String(s.zombies[k]), { 'font-size': 11, 'font-weight': 700, fill: sel ? '#062b27' : '#e8eaed' });
+      const title = this.svg('title', {}, g);
+      title.textContent = `${LOCATIONS[k].name}: ${s.zombies[k]} zombies`;
+    });
+    TOWN.forEach(k => {
+      const [x, y] = MAP_POS[k];
+      const n = s.zombies[k];
+      const color = zombieColor(n, normalZombies(k));
+      const g = this.svg('g', { class: 'place' }, map);
+      g.addEventListener('click', select(k));
+      if (k === this.selected) this.svg('circle', { cx: x, cy: y, r: 30, fill: 'none', stroke: '#2bb3a3', 'stroke-width': 3 }, g);
+      this.svg('circle', { cx: x, cy: y, r: 23, fill: color, 'fill-opacity': 0.22 + Math.min(0.5, n / 200), stroke: color, 'stroke-width': 2, class: 'node' }, g);
+      this.svgText(g, x, y - 2, '🧟', { 'font-size': 12 });
+      this.svgText(g, x, y + 12, String(n), { 'font-size': 12, 'font-weight': 700, fill: '#ffffff' });
+      const [dx, dy, anchor] = MAP_LABEL[k];
+      this.svgText(g, x + dx, y + dy, LOCATIONS[k].name, { 'text-anchor': anchor, 'font-size': 11, 'font-weight': 600, fill: '#9aa4b2', stroke: '#0b0f14', 'stroke-width': 3, 'paint-order': 'stroke' });
+    });
+
+    const groups = {};
+    s.players.forEach(p => (groups[p.at] = groups[p.at] || []).push(p));
+    for (const k in groups) {
+      const [cx, cy] = LOCATIONS[k].isRoad ? mid(k) : MAP_POS[k];
+      const list = groups[k];
+      list.forEach((p, i) => {
+        const angle = -Math.PI / 2 + (i - (list.length - 1) / 2) * 0.75;
+        const dist = LOCATIONS[k].isRoad ? 22 : 34;
+        const x = cx + Math.cos(angle) * dist, y = cy + Math.sin(angle) * dist;
+        const g = this.svg('g', {}, map);
+        if (p === s.current && p.alive) this.svg('circle', { cx: x, cy: y, r: 13, fill: 'none', stroke: '#ffffff', 'stroke-width': 2 }, g);
+        this.svg('circle', { cx: x, cy: y, r: 10, fill: p.alive ? p.color : '#4b5563', stroke: '#0b0f14', 'stroke-width': 2 }, g);
+        this.svgText(g, x, y + 4, p.alive ? p.name[0].toUpperCase() : '💀', { 'font-size': p.alive ? 11 : 9, 'font-weight': 800, fill: '#0b0f14' });
+        const where = p.spot ? ` (inside ${LOCATIONS[k].spots[p.spot].name})` : '';
+        const title = this.svg('title', {}, g);
+        title.textContent = `${p.name}${p.alive ? '' : ' (dead)'}: ${LOCATIONS[k].name}${where}`;
+      });
+    }
+
+    const legend = this.el('div', 'ad-legend');
+    [['#2bb3a3', 'No zombies'], ['#69db7c', 'Fewer than normal'], ['#f3b664', 'Normal'], ['#ff922b', 'Lots'], ['#f03e3e', 'Overrun']].forEach(([c, label]) => {
+      const span = this.el('span');
+      const sw = this.el('i');
+      sw.style.background = c;
+      span.append(sw, label);
+      legend.append(span);
+    });
+    const left = this.el('div');
+    left.append(map, legend);
+
+    const wrap = this.el('div', 'ad-mapwrap');
+    wrap.append(left, this.zombieEditor());
+    panel.append(head, wrap);
+    return panel;
+  }
+
+  zombieEditor() {
+    const s = this.scene;
+    const k = this.selected;
+    const n = s.zombies[k];
+    const normal = normalZombies(k);
+    const set = v => this.act(() => s.adminDo('zombies', k, v));
+    const box = this.el('div', 'ad-zbox');
+    box.append(this.el('h3', '', LOCATIONS[k].isRoad ? 'Selected road' : 'Selected place'), this.el('div', 'ad-zname', LOCATIONS[k].name));
+    const count = this.el('div', 'ad-zcount', String(n));
+    const label = this.el('small', '', `zombies (normal is ${normal})`);
+    count.style.color = zombieColor(n, normal);
+    count.append(label);
+    const range = this.el('input', 'ad-range');
+    Object.assign(range, { type: 'range', min: 0, max: Math.max(200, n), value: n });
+    range.addEventListener('input', () => { count.firstChild.textContent = range.value; });
+    range.addEventListener('change', () => set(+range.value));
+    const steps = this.el('div', 'ad-row');
+    [-10, -1, 1, 10].forEach(d => steps.append(this.button((d > 0 ? '+' : '−') + Math.abs(d), 'ghost', () => set(n + d), n + d < 0)));
+    const presets = this.el('div', 'ad-row');
+    presets.style.marginTop = '6px';
+    presets.append(
+      this.button('Clear', 'secondary', () => set(0)),
+      this.button('Normal', 'ghost', () => set(normal)),
+      this.button('Horde', 'ghost', () => set(normal * 3)),
+      this.button('Overrun', 'danger', () => set(normal * 6))
+    );
+    const here = s.players.filter(p => p.at === k).map(p => p.name + (p.alive ? '' : ' 💀'));
+    box.append(count, range, steps, presets, this.el('p', 'ad-here', here.length ? `Here now: ${here.join(', ')}` : 'Nobody is here right now.'));
+
+    const total = Object.values(s.zombies).reduce((a, b) => a + b, 0);
+    const normalTotal = Object.keys(s.zombies).reduce((a, z) => a + normalZombies(z), 0);
+    const town = this.el('div', 'ad-zbox');
+    const tcount = this.el('div', 'ad-zcount', String(total));
+    tcount.append(this.el('small', '', `zombies in town (normal is ${normalTotal})`));
+    const pct = Math.round(total / normalTotal * 100);
+    const trange = this.el('input', 'ad-range');
+    Object.assign(trange, { type: 'range', min: 0, max: 600, step: 25, value: Math.min(600, pct) });
+    const tlabel = this.el('p', 'ad-here', `Set every place to ${trange.value}% of normal`);
+    trange.addEventListener('input', () => { tlabel.textContent = `Set every place to ${trange.value}% of normal`; });
+    trange.addEventListener('change', () => this.act(() => s.adminDo('allZombies', null, trange.value / 100)));
+    const all = this.el('div', 'ad-row');
+    [['None', 0, 'secondary'], ['Half', 0.5, 'ghost'], ['Normal', 1, 'ghost'], ['×2', 2, 'ghost'], ['×5', 5, 'danger']].forEach(([label, m, cls]) =>
+      all.append(this.button(label, cls, () => this.act(() => s.adminDo('allZombies', null, m)))));
+    town.append(this.el('h3', '', 'Whole town'), tcount, trange, all, tlabel);
+
+    const col = this.el('div', 'ad-zed');
+    col.append(box, town);
+    return col;
   }
 
   sidePanels() {

@@ -5,6 +5,9 @@ const HIT_CHANCE = { follow: 0.35, protect: 0.7, fight: 0.5, hide: 0 };
 const SAVE_CHANCE = { follow: 0.5, protect: 0.75, fight: 0.5, hide: 0 };
 const HISTORY_KEY = 'undeadIncHistory';
 const ADMIN_CODE = 'zombie king 67';
+const ZOMBIE_START = { house: 6, school: 25, park: 15, gas: 10, mall: 40, sports: 20, police: 15, hospital: 35, woods: 8, tower: 5 };
+const ROAD_ZOMBIES = 12;
+const normalZombies = k => ZOMBIE_START[k] ?? ROAD_ZOMBIES;
 
 class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
@@ -20,6 +23,23 @@ class GameScene extends Phaser.Scene {
     }));
     this.round = 1;
     this.turn = 0;
+    this.zombies = {};
+    for (const k in LOCATIONS) this.zombies[k] = normalZombies(k);
+  }
+
+  zombieDanger(k) {
+    const n = this.zombies[k];
+    if (n === 0) return -200;
+    return Phaser.Math.Clamp(Math.round((n / normalZombies(k) - 1) * 20), -40, 60);
+  }
+
+  zombieLine(k) {
+    const n = this.zombies[k], r = n / normalZombies(k);
+    if (n === 0) return 'There is not a single zombie in sight. It is eerily quiet.';
+    if (r < 0.5) return 'There are only a few zombies around here right now.';
+    if (r >= 4) return `⚠⚠ This place is OVERRUN. There must be ${n} zombies here, way more than anywhere else in town!`;
+    if (r >= 2) return `⚠ There are way more zombies here than usual, about ${n} of them.`;
+    return '';
   }
 
   create() {
@@ -166,7 +186,8 @@ class GameScene extends Phaser.Scene {
     this.headerText.setText(p.freeUsed ? `Still ${p.name}'s turn` : `What will ${p.name} do?`).setColor(p.color);
     this.recapText.setText(p.recap ? `Last time: ${p.recap}` : `Pass the keyboard to ${p.name}!`);
     this.storyText.setY(this.recapText.y + this.recapText.height + 10);
-    this.storyText.setText(this.turnStory).setColor('#ffffff');
+    const crowd = this.zombieLine(p.at);
+    this.storyText.setText(this.turnStory + (crowd ? '\n\n' + crowd : '')).setColor('#ffffff');
     this.inputText.setColor('#88ff88');
     const ride = p.vehicles.length ? `\nYou have: ${p.vehicles.map(v => VEHICLES[v].icon + ' ' + VEHICLES[v].name).join(', ')}. You can use it to travel anywhere!` : '';
     const free = `\nSmall actions (talking to people, team orders, searching the street for a vehicle) are free: ${MAX_FREE - p.freeUsed} left this turn.`;
@@ -297,6 +318,12 @@ class GameScene extends Phaser.Scene {
       case 'skip': this.nextTurn(); return `Skipped ${t.name}'s turn`;
       case 'round': this.round = Math.max(1, arg); return `Now on round ${this.round}`;
       case 'win': this.gameOver(t); return '';
+      case 'zombies':
+        this.zombies[t] = Phaser.Math.Clamp(Math.round(arg), 0, 999);
+        return `${LOCATIONS[t].name}: ${this.zombies[t]} zombies`;
+      case 'allZombies':
+        for (const k in this.zombies) this.zombies[k] = Math.round(normalZombies(k) * arg);
+        return arg === 0 ? 'Every zombie in town is gone' : `Zombies everywhere set to ${Math.round(arg * 100)}% of normal`;
     }
   }
 
@@ -364,8 +391,10 @@ class GameScene extends Phaser.Scene {
     const repeated = !free && !['travel', 'supplies', 'enter'].includes(type) && p.last === type;
     if (!free) p.last = type;
     const baseOdds = type === 'enter' ? (parsed.crash ? ACTIONS.drive.odds : [65, 25, 10]) : ACTIONS[style].odds;
-    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0));
-    if (p.god) result = 'good';
+    const zombieDanger = this.zombieDanger(type === 'travel' ? parsed.dest : p.at);
+    if (zombieDanger < 0) boost -= zombieDanger;
+    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0) + Math.max(0, zombieDanger));
+    if (p.god || (type !== 'travel' && this.zombies[p.at] === 0)) result = 'good';
     else if (p.curse && !free) { result = p.hearts > 1 ? 'hurt' : 'dead'; p.curse = false; }
 
     const weapon = p.items.reduce((best, k) => ((ITEMS[k].boost || {}).fight || 0) > (best ? ITEMS[best].boost.fight : 0) ? k : best, null);
