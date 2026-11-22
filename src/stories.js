@@ -176,7 +176,7 @@ const ACTIONS = {
       '{name} digs through {place}, but a zombie was hiding behind a shelf and scratches {name} before {name} can get away.'
     ],
     dead: [
-      '{name} reaches into the wrong cabinet. There was a zombie in it.',
+      '{name} gets so focused on searching that a zombie walks right up behind {name} without making a sound.',
       '{name} was so busy looting that the zombies snuck up from behind.'
     ]
   },
@@ -247,6 +247,7 @@ const ENTER_TEXT = {
   good: ['{name} slips inside {spot} and looks around.', '{name} carefully makes their way into {spot}.'],
   hurt: ['A zombie lunges out of a doorway as {name} heads for {spot}. {name} gets inside, but not without a scratch.'],
   dead: ['{spot} was full of zombies. {name} walked right into them.'],
+  deadOnWay: ['{name} heads for {spot}, but a crowd of zombies cuts {name} off before {name} can get there.'],
   outside: ['{name} heads back outside, checking both ways first.'],
   outsideHurt: ['{name} steps outside, right into a zombie waiting by the door. {name} shoves it away, but not before it gets a scratch in.'],
   outsideDead: ['{name} opens the door to leave, and the street outside is packed with zombies. There is nowhere to go.'],
@@ -254,7 +255,20 @@ const ENTER_TEXT = {
   crashDead: ['{name} tries to drive into {spot}, but the car gets stuck in the doorway. The zombies swarm it.']
 };
 
-const STREET_SEARCH_FAIL = '{name} checks the cars and driveways along the street, but nothing works. Flat tires, no keys, dead batteries. Maybe on the next trip.';
+const SCHOOL_LOCKER_TEXT = {
+  hurt: [
+    '{name} yanks open a locker, and a zombie in a letterman jacket comes tumbling out! It gets a scratch in before {name} shoves it back inside and slams the door.',
+    '{name} squeezes toward the lockers, and the one right next to {name} bangs open from the inside. A zombie was crammed in there! {name} gets away, but not without a scratch.'
+  ],
+  dead: [
+    '{name} reaches for a locker door, and it bursts open from the inside. There was a zombie crammed in there the whole time, and it was hungry.',
+    'Every locker in the row bangs open at once. The school lockers were full of zombies, and now they are all around {name}.'
+  ]
+};
+
+const ZOMBIE_INSIDE = /already had a zombie|zombie in it|zombie was hiding/;
+
+const STREET_SEARCH_FAIL ='{name} checks the cars and driveways along the street, but nothing works. Flat tires, no keys, dead batteries. Maybe on the next trip.';
 
 const SACRIFICE_TEXT = 'But {friend} jumps in the way at the last second and pushes {name} to safety! {friend} holds the zombies back while {name} escapes... but {friend} does not make it out. 💔';
 

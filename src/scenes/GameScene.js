@@ -354,7 +354,8 @@ class GameScene extends Phaser.Scene {
         text = pick(result === 'good' ? ENTER_TEXT.outside : result === 'hurt' ? ENTER_TEXT.outsideHurt : ENTER_TEXT.outsideDead);
         if (result !== 'dead') p.spot = null;
       } else {
-        text = pick(parsed.crash ? (result === 'dead' ? ENTER_TEXT.crashDead : ENTER_TEXT.crash) : ENTER_TEXT[result]);
+        const container = /locker|cabinet|cupboard/i.test(loc.spots[parsed.spot].name) && p.at !== 'school';
+        text = pick(parsed.crash ? (result === 'dead' ? ENTER_TEXT.crashDead : ENTER_TEXT.crash) : result === 'dead' && container ? ENTER_TEXT.deadOnWay : ENTER_TEXT[result]);
         if (result !== 'dead') {
           p.spot = parsed.spot;
           text += ' ' + loc.spots[parsed.spot].desc;
@@ -400,6 +401,14 @@ class GameScene extends Phaser.Scene {
       }
     } else {
       text = pick(ACTIONS[type][result]);
+      if ((type === 'hide' || type === 'supplies') && result !== 'good') {
+        if (p.at === 'school' && /\blockers?\b/.test(said)) {
+          text = pick(SCHOOL_LOCKER_TEXT[result]);
+        } else if (/\b(cabinet|cupboard|locker)s?\b/.test(said)) {
+          const safe = ACTIONS[type][result].filter(s => !ZOMBIE_INSIDE.test(s));
+          if (safe.length) text = pick(safe);
+        }
+      }
       if (spotKey && result !== 'dead' && spotKey !== p.spot) {
         text = `${p.name} heads into ${spotName}. ${text}`;
         p.spot = spotKey;

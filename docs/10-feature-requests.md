@@ -113,3 +113,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** When a player's 3rd teammate dies (even while saving them), the player dies of heartbreak. The header says "ANN DIED OF HEARTBREAK 💔", and the game over screen and spreadsheet ("Died of heartbreak") show it too. The side panel shows a 💔 for each friend lost, but on purpose nothing warns that 3 is the limit.
 **Files changed:** `src/scenes/GameScene.js`
 **Design note:** → [Session 1 — Heartbreak](09-design-decisions.md)
+
+### #11 — No Zombies in Cabinets; School Lockers Only
+
+**Asked:** "Make it so that zombies can't be in cabinets, but can be in lockers only in the school."
+**Status:** ✓ Done
+**What was built:** Removed the "zombie in the cabinet" search death. When you hide in or search a cabinet, cupboard, or a locker outside the school, the game never picks a story where a zombie was inside it. Entering the radio tower's Supply Locker can't say it was full of zombies either. At the school, hiding in or searching lockers uses new locker scenes where zombies burst out, and there is a new school event where a row of lockers bangs open.
+**Files changed:** `src/stories.js`, `src/world.js`, `src/scenes/GameScene.js`
+**Design note:** → [Session 1 — Cabinets and Lockers](09-design-decisions.md)

@@ -131,3 +131,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** `HEARTBREAK = 3`. After all hit and sacrifice handling in `resolve`, if `p.stats.friendsLost >= 3` the result becomes dead and `p.heartbroken` is set for the header, game over line and CSV.
 **Why this way:** The check runs last, so a friend's sacrifice that would have saved you can still break your heart. The user asked for no warning so it is a funny surprise, so only the 💔 counter is shown. Simulations: recruiting survivors scores well with any orders (follow 66, protect 68, no friends 44), so after this change the shield trick is not what makes recruiting strong.
 **What was ruled out:** A warning at 2 friends lost (removed at the user's request).
+
+### Cabinets and Lockers
+
+**What was asked:** No zombies inside cabinets anywhere. Zombies inside lockers only at the school.
+**What was built:** `SCHOOL_LOCKER_TEXT` (hurt and dead) and `ZOMBIE_INSIDE` (a pattern that spots "zombie was inside" lines). In `resolve`, hide and search results that are not safe check what the player typed: school + locker uses the locker scenes; any other cabinet, cupboard or locker filters out the "zombie inside" lines. `ENTER_TEXT.deadOnWay` is used when entering a locker or cabinet spot outside the school.
+**Why this way:** Checking the player's own words means the story matches what they said they were hiding in, without adding a new action type. A 4,000-try test per case showed 0 zombies inside cabinets or non-school lockers.
+**What was ruled out:** Removing every "hiding spot already had a zombie" line (it is still funny for closets, dumpsters and so on).

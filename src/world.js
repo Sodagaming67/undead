@@ -122,7 +122,8 @@ const LOCATIONS = {
     events: [
       { text: 'A group of zombies in marching band uniforms is shuffling down the main hallway, still holding their instruments. They have not spotted you yet, but they are coming your way.', bonus: ['sneak', 'hide', 'trick'] },
       { text: 'You hear someone shouting for help from the far end of the school. It sounds like they are trapped, and the shouting is drawing zombies toward them.', bonus: ['help', 'fight', 'trick'] },
-      { text: 'The cafeteria doors burst open and a zombie in a lunch lady hairnet comes charging out, faster than the others, with more behind her.', bonus: ['fight', 'run', 'barricade'] }
+      { text: 'The cafeteria doors burst open and a zombie in a lunch lady hairnet comes charging out, faster than the others, with more behind her.', bonus: ['fight', 'run', 'barricade'] },
+      { text: 'A whole row of hallway lockers starts rattling. One by one, the doors bang open, and zombies with backpacks still on their shoulders stumble out into the hall.', bonus: ['run', 'sneak', 'barricade'] }
     ],
     spots: {
       gym: { name: 'Gym', aliases: ['gym', 'gymnasium', 'bleachers'], desc: `The gym is huge and echoey. Basketballs are scattered across the floor and the bleachers are pulled out along one wall.`, items: ['hockey_stick'], good: ['climb', 'fight'] },
