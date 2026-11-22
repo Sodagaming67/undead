@@ -24,7 +24,7 @@ class GameScene extends Phaser.Scene {
     }));
     this.round = 1;
     this.turn = 0;
-    this.players.forEach(p => { p.escapeItems = []; });
+    this.players.forEach(p => Object.assign(p, { escapeItems: [], traps: [], bunkerProgress: 0, bunkerBuilt: false, bunkerTurns: 0, inBunker: false }));
     const forests = Phaser.Utils.Array.Shuffle(Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest));
     this.escapes = { heli: forests[0], subway: forests[1] };
     this.escapeAt = {};
@@ -111,6 +111,10 @@ class GameScene extends Phaser.Scene {
       const woods = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest && LOCATIONS[k].roads.includes(p.at)).map(k => LOCATIONS[k].name);
       if (woods.length) lines.push(`     🌲 woods beside the road: ${woods.join(', ')} (⚠ deadly)`);
     }
+    if (p.at === 'house') {
+      const bunker = p.inBunker ? `INSIDE ${this.bunkerBar(p.bunkerTurns)}` : p.bunkerBuilt ? `ready ${this.bunkerBar(p.bunkerTurns)}` : `${p.bunkerProgress}/${BUNKER_BUILD} built`;
+      lines.push(`     🪤 traps: ${p.traps.length ? p.traps.map(t => `${TRAPS[t.kind].name} ${t.chance}%`).join(', ') : 'none'}`, `     🛡 bunker: ${bunker}`);
+    }
     lines.push('', `ESCAPE:  🚁 ${LOCATIONS[this.escapes.heli].name}   🚇 ${LOCATIONS[this.escapes.subway].name}`,
       '  need: ' + Object.keys(ESCAPE_ITEMS).map(k => `${ESCAPE_ITEMS[k].icon}${p.escapeItems.includes(k) ? '✓' : ' at ' + LOCATIONS[this.escapeAt[k]].name}`).join('  '),
       '  (escape items move every round)');
@@ -166,6 +170,12 @@ class GameScene extends Phaser.Scene {
     p.eventIdx[p.at] = idx + 1;
 
     const parts = [];
+    if (p.inBunker) {
+      this.turnStory = p.bunkerTurns > 0
+        ? `🛡 ${p.name} is sealed inside the bunker. Outside, the zombies are scratching and pounding on the walls.\n\nBunker strength: ${this.bunkerBar(p.bunkerTurns)} (${p.bunkerTurns} more turn${p.bunkerTurns === 1 ? '' : 's'} before it breaks). Type "wait" to stay safe inside, or "leave the bunker" to climb out.`
+        : `⚠⚠ The bunker is about to BREAK! The walls are split and gray hands are reaching through the cracks. Type "leave the bunker" to get out now, or stay and face the zombies when they break in!`;
+      return;
+    }
     if (!p.sawPrologue) parts.push(PROLOGUE);
     p.sawPrologue = true;
     if (p.justArrived) parts.push(loc.intro);
@@ -220,7 +230,8 @@ class GameScene extends Phaser.Scene {
     if (item && !p.escapeItems.includes(item)) extra.push(`📦 The ${ESCAPE_ITEMS[item].icon} ${ESCAPE_ITEMS[item].name} is somewhere at ${LOCATIONS[p.at].name} this round! Search to find it.`);
     this.storyText.setText([this.turnStory, ...extra.filter(Boolean)].join('\n\n')).setColor('#ffffff');
     this.inputText.setColor('#88ff88');
-    const ride = p.vehicles.length ? `\nYou have: ${p.vehicles.map(v => VEHICLES[v].icon + ' ' + VEHICLES[v].name).join(', ')}. You can use it to travel anywhere!` : '';
+    const homeTips = p.at === 'house' && !p.inBunker ? '\nAt your house you can also: "set a trap" · "build a bunker"' + (p.bunkerBuilt ? ' · "go into the bunker"' : '') : '';
+    const ride = homeTips + (p.vehicles.length ? `\nYou have: ${p.vehicles.map(v => VEHICLES[v].icon + ' ' + VEHICLES[v].name).join(', ')}. You can use it to travel anywhere!` : '');
     const free = `\nSmall actions (talking to people, team orders, searching the street for a vehicle) are free: ${MAX_FREE - p.freeUsed} left this turn.`;
     this.footerText.setText(`${IDEAS}${ride}${free}\nPress ENTER when you're done typing`);
     this.drawStatus();
@@ -348,7 +359,7 @@ class GameScene extends Phaser.Scene {
         return `Gave ${t.name} ${arg === 'all' ? 'every vehicle' : 'a ' + VEHICLES[arg].name.toLowerCase()}`;
       case 'teleport':
         if (!arg) return '';
-        Object.assign(t, { at: arg, spot: null, justArrived: true, spotFresh: false, stay: 0, prevTurnAt: arg, cameFrom: null });
+        Object.assign(t, { at: arg, spot: null, justArrived: true, spotFresh: false, stay: 0, prevTurnAt: arg, cameFrom: null, inBunker: false });
         if (!t.stats.visited.includes(arg)) t.stats.visited.push(arg);
         if (t === this.current) this.prepareStory(t);
         return `${t.name} teleported to ${LOCATIONS[arg].name}`;
@@ -403,9 +414,9 @@ class GameScene extends Phaser.Scene {
     const loc = LOCATIONS[p.at];
     const said = ' ' + this.typed.toLowerCase().replace(/[^a-z0-9 ]/g, ' ') + ' ';
     const other = this.players.find(o => o !== p && o.name.trim().length > 1 && said.includes(' ' + o.name.toLowerCase().trim() + ' '));
-    const parsed = other
+    const parsed = parseSurvival(this.typed, p) || (other
       ? { hint: `${other.name} is off in their own story somewhere else in town. ${p.name} can't reach them, so make a move for ${p.name}!` }
-      : parseAction(this.typed, p);
+      : parseAction(this.typed, p));
     if (parsed.hint) {
       this.hint = parsed.hint;
       this.typed = '';
@@ -448,14 +459,30 @@ class GameScene extends Phaser.Scene {
     const route = parsed.forest ? { miles: 0.2, roads: [], path: [p.at, parsed.dest] } : type === 'travel' ? routeTo(p.at, parsed.dest) : null;
     const miles = route ? route.miles * (parsed.vehicle ? VEHICLES[parsed.vehicle].factor : 1) : 0;
 
-    const repeated = !free && !['travel', 'supplies', 'enter'].includes(type) && p.last === type;
+    const repeated = !free && !parsed.survival && !['travel', 'supplies', 'enter'].includes(type) && p.last === type;
+    const bunkerBreaks = parsed.survival === 'bunkerWait' && p.bunkerTurns <= 0;
+    if (['bunkerEnter', 'bunkerLeave', 'bunkerWait'].includes(parsed.survival)) helpers.length = 0;
     if (!free) p.last = type;
     const baseOdds = type === 'enter' ? (parsed.crash ? ACTIONS.drive.odds : [65, 25, 10]) : ACTIONS[style].odds;
     const zombieDanger = this.zombieDanger(type === 'travel' ? parsed.dest : p.at);
     if (zombieDanger < 0) boost -= zombieDanger;
-    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0) + Math.max(0, zombieDanger) + (parsed.forest && LOCATIONS[parsed.dest].isForest ? 25 : 0));
+    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0) + Math.max(0, zombieDanger) + (parsed.forest && LOCATIONS[parsed.dest].isForest ? 25 : 0) + (bunkerBreaks ? 40 : 0));
     if (p.god || (type !== 'travel' && this.zombies[p.at] === 0)) result = 'good';
     else if (p.curse && !free) { result = p.hearts > 1 ? 'hurt' : 'dead'; p.curse = false; }
+    if (['bunkerEnter', 'bunkerLeave'].includes(parsed.survival) || (parsed.survival === 'bunkerWait' && !bunkerBreaks)) result = 'good';
+
+    let trapNote = '';
+    if (p.at === 'house' && p.traps.length && type !== 'travel' && !p.inBunker && !bunkerBreaks && (result === 'hurt' || result === 'dead')) {
+      const trap = p.traps.shift();
+      const T = TRAPS[trap.kind];
+      const left = `${p.traps.length} trap${p.traps.length === 1 ? '' : 's'} left`;
+      if (Math.random() * 100 < trap.chance) {
+        result = 'good';
+        trapNote = `🪤 TRAP WORKED! The zombies were about to get ${p.name}, but they ran right into the ${T.name}. ${T.works}\n(The ${T.name} had a ${trap.chance}% chance and it WORKED. It is used up now: ${left}.)`;
+      } else {
+        trapNote = `🪤 TRAP FAILED! The zombies ran into the ${T.name}, but... ${T.fails}\n(The ${T.name} had a ${trap.chance}% chance and it FAILED. It is used up now: ${left}.)`;
+      }
+    }
 
     const weapon = p.items.reduce((best, k) => ((ITEMS[k].boost || {}).fight || 0) > (best ? ITEMS[best].boost.fight : 0) ? k : best, null);
     const destLoc = parsed.dest ? LOCATIONS[parsed.dest] : loc;
@@ -543,6 +570,8 @@ class GameScene extends Phaser.Scene {
       } else {
         text = result === 'good' ? fill(STREET_SEARCH_FAIL) : pick(ACTIONS.supplies[result]);
       }
+    } else if (parsed.survival) {
+      text = this.survivalText(p, parsed, result, pick);
     } else {
       text = pick(ACTIONS[type][result]);
       if ((type === 'hide' || type === 'supplies') && result !== 'good') {
@@ -619,6 +648,7 @@ class GameScene extends Phaser.Scene {
 
     if (repeated) text = 'The zombies have seen that move before and they are starting to catch on...\n\n' + text;
     if (!free) p.recap = text.replace(/^The zombies have seen.*\n\n/, '').split(/(?<=[.!?])\s/)[0];
+    if (trapNote) text = trapNote + '\n\n' + text;
     const escapeItem = this.escapeItemAt(p.at);
     if (type === 'supplies' && result !== 'dead' && escapeItem) {
       const e = ESCAPE_ITEMS[escapeItem];
@@ -683,6 +713,57 @@ class GameScene extends Phaser.Scene {
       text += ` Inside the package is ${ITEMS[key].name}! ${ITEMS[key].desc}`;
     }
     return text;
+  }
+
+  bunkerBar(turns) { return '■'.repeat(turns) + '□'.repeat(BUNKER_TURNS - turns); }
+
+  survivalText(p, parsed, result, pick) {
+    const n = p.name;
+    if (result === 'dead' && parsed.survival !== 'bunkerWait') return pick(ACTIONS.barricade.dead);
+    const ouch = result === 'hurt' ? `A zombie got into the house while ${n} was working and bit ${n}, but ${n} kept going. ` : '';
+    switch (parsed.survival) {
+      case 'trap': {
+        const T = TRAPS[parsed.trap];
+        const tools = p.items.find(k => ['duct_tape', 'rope', 'hammer_nails'].includes(k));
+        const chance = Math.min(85, T.chance + (tools ? 10 : 0));
+        p.traps.push({ kind: parsed.trap, chance });
+        return `${ouch}🪤 TRAP SET: ${T.name.toUpperCase()}\n${n} ${T.build}.${tools ? ` The ${ITEMS[tools].short.toLowerCase()} makes it extra sturdy (+10%).` : ''}\n\n` +
+          `HOW IT WORKS: The next time zombies would hurt or kill ${n} here at Your House, this trap goes off first. It has a ${chance}% chance to stop the attack completely. If it fails, the zombies get through like normal. Each trap works only once, whether it works or fails, and traps only protect ${n} while ${n} is at Your House. (Traps ready: ${p.traps.length}/${MAX_TRAPS})`;
+      }
+      case 'bunkerBuild':
+        p.bunkerProgress++;
+        if (p.bunkerProgress < BUNKER_BUILD) {
+          return `${ouch}🛡 ${n} drags the old mattress, the metal shelves and the deep freezer down to the basement and starts building a bunker around the water heater. It is not done yet. (Bunker: ${p.bunkerProgress}/${BUNKER_BUILD} built. Type "build the bunker" again to finish it.)`;
+        }
+        p.bunkerBuilt = true;
+        p.bunkerTurns = BUNKER_TURNS;
+        return `${ouch}🛡 BUNKER READY! ${n} bolts the last sheet of plywood over the metal shelves and stacks sandbags made of rice and dog food on top. It's small, it's ugly, and it's strong.\n\n` +
+          `HOW IT WORKS: Type "go into the bunker" to seal yourself inside. While ${n} is inside, NOTHING can hurt ${n}, but all ${n} can do is wait or leave. The zombies will pound on it every turn, and it can only hold for ${BUNKER_TURNS} turns. If ${n} is still inside after that, it breaks and the zombies pour in. That will be EXTREMELY dangerous. Type "leave the bunker" to get out first.`;
+      case 'bunkerEnter':
+        p.inBunker = true;
+        p.spot = 'basement';
+        return `🛡 ${n} climbs into the bunker and slams the hatch shut. It's dark and it smells like rice, but it's safe. For now.\n\nBunker strength: ${this.bunkerBar(p.bunkerTurns)} (${p.bunkerTurns} turns before it breaks). Next turn type "wait" to stay inside, or "leave the bunker".`;
+      case 'bunkerLeave':
+        p.inBunker = false;
+        return `🛡 ${n} carefully opens the hatch and climbs out of the bunker into the basement. The house is quiet... for a moment. (The bunker is still there with ${p.bunkerTurns} turn${p.bunkerTurns === 1 ? '' : 's'} of strength left.)`;
+      case 'bunkerWait':
+        if (p.bunkerTurns > 0) {
+          p.bunkerTurns--;
+          const warn = p.bunkerTurns === 0
+            ? `⚠⚠ The walls are bending and the plywood is splitting! The bunker WILL BREAK next turn. Type "leave the bunker" NOW, or face the zombies when they break in!`
+            : `The bunker can hold for ${p.bunkerTurns} more turn${p.bunkerTurns === 1 ? '' : 's'}.`;
+          return `🛡 THUD. THUD. THUD. The zombies pound on the bunker walls all turn, but ${n} stays safe inside.${/\b(wait|stay|rest|sleep|hide|chill)\b/.test(this.typed.toLowerCase()) ? '' : ` (Inside the bunker, ${n} can only wait or leave.)`}\n\nBunker strength: ${this.bunkerBar(p.bunkerTurns)}. ${warn}`;
+        }
+        p.inBunker = false;
+        p.bunkerBuilt = false;
+        p.bunkerProgress = 0;
+        p.spot = 'basement';
+        return `💥 CRASH! The bunker finally gives way. The plywood splits, the shelves topple, and zombies pour in from every side!\n\n` + ({
+          good: `${n} dives through a gap in the zombies and scrambles up the basement stairs. ALIVE! But the bunker is destroyed.`,
+          hurt: `${n} fights through the pile of zombies, getting bitten on the way, and staggers up the basement stairs. The bunker is destroyed.`,
+          dead: `There are too many of them. ${n} never makes it out of the basement.`
+        })[result];
+    }
   }
 
   placeEscapeItems() {

@@ -433,6 +433,33 @@ function missingVehicle(p, v) {
   return `${p.name} doesn't have a ${VEHICLES[v].name.toLowerCase()}! Vehicles can only be found out on the roads (try "search the street for a ${v}") or from survivors.`;
 }
 
+function parseSurvival(typed, p) {
+  const t = ' ' + typed.toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+  if (p.inBunker) {
+    if (/ (leave|exit|get out|climb out|go out|open|out of|come out) /.test(t)) return { type: 'barricade', survival: 'bunkerLeave' };
+    return { type: 'barricade', survival: 'bunkerWait' };
+  }
+  const bunker = / (bunker|bunkers|panic room|safe room|fallout shelter) /.test(t);
+  const trap = / (trap|traps|booby|tripwire|trip wire|snare|mousetrap|mousetraps) /.test(t);
+  if (!bunker && !trap) return null;
+  if (p.at !== 'house') {
+    return { hint: `${p.name} can only ${bunker ? 'build a bunker' : 'set up traps'} at Your House, where all the house stuff is. Head home first!` };
+  }
+  if (bunker) {
+    const building = / (build|make|dig|finish|work|construct|start|keep|continue|making|building) /.test(t);
+    if (!building && / (go|get|enter|hide|climb|into|inside|in|lock|seal|use) /.test(t)) {
+      if (!p.bunkerBuilt) return { hint: `${p.name} hasn't built a bunker yet! Type "build a bunker". It takes ${BUNKER_BUILD} turns to build.` };
+      return { type: 'barricade', survival: 'bunkerEnter' };
+    }
+    if (p.bunkerBuilt) return { hint: `${p.name}'s bunker is already built! Type "go into the bunker" to hide in it.` };
+    return { type: 'barricade', survival: 'bunkerBuild' };
+  }
+  if (p.traps.length >= MAX_TRAPS) return { hint: `${p.name} already has ${MAX_TRAPS} traps set up. That's all the house stuff that's left! A trap is used up when it goes off.` };
+  const unused = Object.keys(TRAPS).filter(k => !p.traps.some(x => x.kind === k));
+  const kind = unused.find(k => TRAPS[k].words.some(w => t.includes(' ' + w)));
+  return { type: 'barricade', survival: 'trap', trap: kind || Phaser.Utils.Array.GetRandom(unused) };
+}
+
 function parseAction(typed, p) {
   const raw = ' ' + typed.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
   if (SELF_HARM_WORDS.some(w => hasExact(raw, w))) return { hint: SELF_HARM_REPLY.replaceAll('{name}', p.name) };

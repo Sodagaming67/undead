@@ -281,7 +281,8 @@ class AdminPanel {
       return span;
     };
     meta.append(hearts, metaItem('📍', LOCATIONS[p.at].name), metaItem('Items', String(p.items.length)),
-      metaItem('Vehicles', String(p.vehicles.length)), metaItem('Team', String(p.team.length)), metaItem('Turns', String(p.turns)));
+      metaItem('Vehicles', String(p.vehicles.length)), metaItem('Team', String(p.team.length)), metaItem('Turns', String(p.turns)),
+      metaItem('🪤', String(p.traps.length)), metaItem('🛡', p.inBunker ? `inside (${p.bunkerTurns})` : p.bunkerBuilt ? 'built' : `${p.bunkerProgress}/${BUNKER_BUILD}`));
 
     const actions = this.el('div', 'ad-actions');
     actions.append(

@@ -413,3 +413,34 @@ const ESCAPES = {
   subway: { name: 'Subway', icon: '🚇', words: ['subway', 'metro', 'train', 'underground', 'tunnel', 'hatch'], seen: 'Under a fallen tree you spot a rusty metal hatch with a faded sign: SUBWAY - EMERGENCY EXIT.',
     win: '{name} pries open the hatch under the fallen tree and climbs down into the dark. A single subway train waits on the tracks. {name} plugs in the ⚡ Power Cell, unlocks the cab with the 🔑 Master Key, and enters the 📋 Escape Codes. The lights flicker on and the train lurches forward as zombies flood down the stairs behind it. {name} rides the train through the tunnel, out of town, all the way to safety.' }
 };
+
+const MAX_TRAPS = 3;
+const BUNKER_BUILD = 2;
+const BUNKER_TURNS = 3;
+
+const TRAPS = {
+  marbles: { name: 'Marble Floor', chance: 60, words: ['marble'], build: 'empties a whole bag of marbles from the toy box across the hallway floor',
+    works: 'The zombies step onto the marbles and their feet fly out from under them. They crash into each other in a big pile, and the attack falls apart.',
+    fails: 'The zombies just shuffle their feet instead of walking, so the marbles roll right out of the way.' },
+  tripwire: { name: 'Pots & Pans Tripwire', chance: 55, words: ['tripwire', 'trip wire', 'fishing line', 'pots', 'pans', 'wire'], build: 'stretches fishing line from the garage across the doorway and ties it to a tower of pots and pans',
+    works: 'The first zombie hits the line and trips. Pots and pans crash down on the whole group, and the noise is so loud the zombies stumble back out the door.',
+    fails: 'The old fishing line snaps the second a zombie touches it. The pots barely wobble.' },
+  lego: { name: 'Lego Minefield', chance: 50, words: ['lego', 'legos', 'blocks', 'toys'], build: 'dumps every Lego brick in the house all over the floor by the stairs',
+    works: 'Zombies do not wear shoes. They step on the Legos and freeze in place, moaning in pain. It turns out NOTHING can survive stepping on a Lego.',
+    fails: 'The zombies cannot feel pain anymore. They crunch right over the Legos like they are not even there.' },
+  paint: { name: 'Paint Bucket Door', chance: 55, words: ['paint', 'bucket'], build: 'balances a full can of paint from the garage on top of the half-open door',
+    works: 'The door swings open and the paint can lands right on the first zombie\'s head with a CLONK. Paint splashes into every zombie\'s eyes and they wander off blind.',
+    fails: 'The paint can wobbles and falls too early with a loud clang. Nobody is even under it.' },
+  oil: { name: 'Slippery Kitchen', chance: 65, words: ['oil', 'soap', 'slippery', 'grease', 'butter'], build: 'pours cooking oil and dish soap all over the kitchen tiles',
+    works: 'The zombies hit the slippery floor and go down hard, sliding into the cabinets. They can\'t get back up long enough to reach anyone.',
+    fails: 'Somebody left a rug on the kitchen floor. It soaks up most of the oil, and the zombies walk right across it.' },
+  tacks: { name: 'Thumbtack Carpet', chance: 45, words: ['tack', 'tacks', 'thumbtack', 'nails', 'pins'], build: 'spreads every thumbtack and pushpin from the junk drawer across the carpet by the front door',
+    works: 'The tacks stick into the zombies\' bare feet. They hop around and fall over each other, and the attack stops.',
+    fails: 'The tacks sink into the thick carpet, and the zombies don\'t even notice them.' },
+  bookshelf: { name: 'Falling Bookshelf', chance: 60, words: ['bookshelf', 'shelf', 'books', 'dresser', 'furniture'], build: 'rigs the big bookshelf with a rope so it tips over when the door opens',
+    works: 'The door opens, the rope pulls tight, and the bookshelf comes crashing down on the zombies, pinning them to the floor.',
+    fails: 'The bookshelf falls... a second too late. The zombies are already past it.' },
+  mousetraps: { name: 'Mousetrap Wall', chance: 40, words: ['mousetrap', 'mouse trap', 'mousetraps', 'mouse traps'], build: 'sets every mousetrap from the basement in a long row in front of the back door',
+    works: 'SNAP SNAP SNAP! The mousetraps clamp onto zombie toes, and the zombies get so confused they turn around and leave.',
+    fails: 'The mousetraps snap, but they are way too small to bother a zombie.' }
+};
