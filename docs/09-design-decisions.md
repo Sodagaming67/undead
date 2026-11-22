@@ -236,3 +236,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** The header, recap, story, input and hint texts are in a Phaser container (`storyBox`) with a geometry mask over the story area (`STORY_VIEW`). `panelText` has its own mask (`PANEL_VIEW`). `scrollBy(which, amount)` clamps the position, moves the content, and updates the scrollbar and "more" label. The mouse `wheel` event picks the area by the pointer's x position. Arrow and Page keys scroll the story (arrow keys weren't used for anything before).
 **Why this way:** Masks keep the long text from spilling over the footer, which it did once boss attacks, traps and escape notes were added. Jumping to the bottom when you type a letter (and not on the cursor blink) means you can still scroll up to reread the story without it snapping back.
 **What was ruled out:** Smaller text (harder for kids to read). Scrolling the whole web page (the game screen is a fixed-size canvas).
+
+### Scavenger Removed
+
+**What was asked:** Remove the scavenger skill.
+**What was built:** Removed `SKILLS.scavenger` and the second `takeItem` call in `resolve`. The setup screen builds its list from `SKILLS`, so it now shows 6 skills and "Press 1-6" automatically.
+**Why this way:** Nothing else depended on the skill.
+**What was ruled out:** Nothing.

@@ -233,3 +233,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** The story area (left) and the side panel (right) now scroll separately. Use the mouse wheel over either one, or ↑ / ↓ (and Page Up / Page Down) for the story. When there's more to see, a thin green scrollbar appears, with "▼ more: scroll or press ↓" in the story or "▼ scroll for more" in the panel. Each new turn or result starts at the top. Typing jumps the story to the bottom so you can always see what you're typing. While the admin panel is open, the game doesn't scroll (the admin panel has its own scrolling).
 **Files changed:** `src/scenes/GameScene.js`
 **Design note:** → [Session 1 — Scrolling](09-design-decisions.md)
+
+### #26 — Remove the Scavenger Skill
+
+**Asked:** "Get rid of the scavenger skill."
+**Status:** ✓ Done
+**What was built:** The 🎒 Scavenger skill and its "finds 2 items at once" search bonus are gone. The skill picker now lists 6 skills (press 1–6, or R for random).
+**Files changed:** `src/world.js`, `src/scenes/GameScene.js`
+**Design note:** → [Session 1 — Scavenger Removed](09-design-decisions.md)

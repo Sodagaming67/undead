@@ -686,8 +686,6 @@ class GameScene extends Phaser.Scene {
       const item = this.takeItem(p, p.at, spotKey);
       if (item) {
         text += ` ${result === 'hurt' ? 'But at least' : 'Nice!'} ${p.name} found ${ITEMS[item].name}! ${ITEMS[item].desc}`;
-        const bonus = p.skill === 'scavenger' ? this.takeItem(p, p.at, spotKey) : null;
-        if (bonus) text += ` 🎒 Scavenger skill: ${p.name} also digs up ${ITEMS[bonus].name}! ${ITEMS[bonus].desc}`;
       } else {
         const anyLeft = Object.keys(loc.spots).some(k => this.itemsLeft(p, p.at, k) > 0);
         text += ` But there is nothing useful left in ${spotName}.${anyLeft ? ' Other stores or rooms here still have stuff (look for 🔎 on the right).' : ' This whole place has been picked clean.'}`;
