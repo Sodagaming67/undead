@@ -27,6 +27,8 @@ class GameScene extends Phaser.Scene {
     this.players.forEach((p, i) => {
       Object.assign(p, { escapeItems: [], traps: [], bunkerProgress: 0, bunkerBuilt: false, bunkerTurns: 0, inBunker: false });
       p.skill = (data.skills || [])[i] || null;
+      p.bosses = {};
+      for (const k in BOSSES) p.bosses[k] = BOSSES[k].hp;
       if (p.skill) p.items = SKILLS[p.skill].kit.slice();
     });
     const forests = Phaser.Utils.Array.Shuffle(Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest));
@@ -115,6 +117,8 @@ class GameScene extends Phaser.Scene {
       const woods = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest && LOCATIONS[k].roads.includes(p.at)).map(k => LOCATIONS[k].name);
       if (woods.length) lines.push(`     🌲 woods beside the road: ${woods.join(', ')} (⚠ deadly)`);
     }
+    const boss = this.bossHere(p);
+    if (boss) lines.push(`     🧟 ${BOSSES[boss].name} is here! ${this.hpBar(p, boss)}`);
     if (p.at === 'house') {
       const bunker = p.inBunker ? `INSIDE ${this.bunkerBar(p)}` : p.bunkerBuilt ? `ready ${this.bunkerBar(p)}` : `${p.bunkerProgress}/${bunkerBuildTurns(p)} built`;
       lines.push(`     🪤 traps: ${p.traps.length ? p.traps.map(t => `${TRAPS[t.kind].name} ${t.chance}%`).join(', ') : 'none'}`, `     🛡 bunker: ${bunker}`);
@@ -171,7 +175,9 @@ class GameScene extends Phaser.Scene {
   prepareStory(p) {
     const loc = LOCATIONS[p.at];
     const idx = p.eventIdx[p.at] || 0;
-    this.event = loc.events[idx % loc.events.length];
+    const beaten = Object.keys(BOSSES).filter(k => BOSSES[k].at === p.at && p.bosses[k] <= 0).map(k => BOSSES[k].tag);
+    const events = loc.events.filter(e => !beaten.some(tag => e.text.includes(tag)));
+    this.event = (events.length ? events : loc.events)[idx % (events.length || loc.events.length)];
     p.eventIdx[p.at] = idx + 1;
 
     const parts = [];
@@ -224,6 +230,11 @@ class GameScene extends Phaser.Scene {
     this.recapText.setText(p.recap ? `Last time: ${p.recap}` : `Pass the keyboard to ${p.name}!`);
     this.storyText.setY(this.recapText.y + this.recapText.height + 10);
     const extra = [this.zombieLine(p.at)];
+    const boss = !p.inBunker && this.bossHere(p);
+    if (boss) {
+      const b = BOSSES[boss];
+      extra.push(`🧟 ${b.name.toUpperCase()} IS HERE! (health ${this.hpBar(p, boss)}) ${b.warn} Type "${b.fight}" to fight back, or get away from here.`);
+    }
     const esc = this.escapeHere(p);
     if (esc) {
       const missing = this.missingItems(p);
@@ -417,7 +428,8 @@ class GameScene extends Phaser.Scene {
     if (this.tryEscape()) return;
     const p = this.current;
     const loc = LOCATIONS[p.at];
-    const said = ' ' + this.typed.toLowerCase().replace(/[^a-z0-9 ]/g, ' ') + ' ';
+    const startAt = p.at;
+    const said =' ' + this.typed.toLowerCase().replace(/[^a-z0-9 ]/g, ' ') + ' ';
     const other = this.players.find(o => o !== p && o.name.trim().length > 1 && said.includes(' ' + o.name.toLowerCase().trim() + ' '));
     const parsed = parseSurvival(this.typed, p) || (other
       ? { hint: `${other.name} is off in their own story somewhere else in town. ${p.name} can't reach them, so make a move for ${p.name}!` }
@@ -466,7 +478,7 @@ class GameScene extends Phaser.Scene {
     const route = parsed.forest ? { miles: 0.2, roads: [], path: [p.at, parsed.dest] } : type === 'travel' ? routeTo(p.at, parsed.dest) : null;
     const miles = route ? route.miles * (parsed.vehicle ? VEHICLES[parsed.vehicle].factor : 1) * (p.skill === 'runner' ? 0.75 : 1) : 0;
 
-    const repeated = !free && !parsed.survival && !['travel', 'supplies', 'enter'].includes(type) && p.last === type;
+    const repeated = !free && !parsed.survival && !(type === 'fight' && this.bossHere(p)) && !['travel', 'supplies', 'enter'].includes(type) && p.last === type;
     const bunkerBreaks = parsed.survival === 'bunkerWait' && p.bunkerTurns <= 0;
     if (['bunkerEnter', 'bunkerLeave', 'bunkerWait'].includes(parsed.survival)) helpers.length = 0;
     if (!free) p.last = type;
@@ -480,15 +492,9 @@ class GameScene extends Phaser.Scene {
 
     let trapNote = '';
     if (p.at === 'house' && p.traps.length && type !== 'travel' && !p.inBunker && !bunkerBreaks && (result === 'hurt' || result === 'dead')) {
-      const trap = p.traps.shift();
-      const T = TRAPS[trap.kind];
-      const left = `${p.traps.length} trap${p.traps.length === 1 ? '' : 's'} left`;
-      if (Math.random() * 100 < trap.chance) {
-        result = 'good';
-        trapNote = `🪤 TRAP WORKED! The zombies were about to get ${p.name}, but they ran right into the ${T.name}. ${T.works}\n(The ${T.name} had a ${trap.chance}% chance and it WORKED. It is used up now: ${left}.)`;
-      } else {
-        trapNote = `🪤 TRAP FAILED! The zombies ran into the ${T.name}, but... ${T.fails}\n(The ${T.name} had a ${trap.chance}% chance and it FAILED. It is used up now: ${left}.)`;
-      }
+      const trap = this.springTrap(p, 'The zombies');
+      if (trap.worked) result = 'good';
+      trapNote = trap.note;
     }
 
     const weapon = p.items.reduce((best, k) => ((ITEMS[k].boost || {}).fight || 0) > (best ? ITEMS[best].boost.fight : 0) ? k : best, null);
@@ -612,6 +618,17 @@ class GameScene extends Phaser.Scene {
       text = this.applyRewards(p, type, text);
     }
 
+    const boss = this.bossHere(p, startAt);
+    if (boss && !free && !p.inBunker && !bunkerBreaks && result !== 'dead') {
+      const turn = this.bossTurn(p, boss, { type, result, fill, pick });
+      text += '\n\n' + turn.text;
+      if (turn.bite) {
+        if (result === 'good') result = 'hurt';
+        else if (--p.hearts <= 0) { result = 'dead'; text += `  ${p.name} has no hearts left...`; }
+        else text += '  (-1 ❤)';
+      }
+    }
+
     if (result === 'hurt') {
       const friend = this.pickTeammate(p, HIT_CHANCE);
       if (friend) {
@@ -724,6 +741,53 @@ class GameScene extends Phaser.Scene {
       text += ` Inside the package is ${ITEMS[key].name}! ${ITEMS[key].desc}`;
     }
     return text;
+  }
+
+  springTrap(p, who) {
+    const trap = p.traps.shift();
+    const T = TRAPS[trap.kind];
+    const left = `${p.traps.length} trap${p.traps.length === 1 ? '' : 's'} left`;
+    const worked = Math.random() * 100 < trap.chance;
+    const note = worked
+      ? `🪤 TRAP WORKED! ${who} came for ${p.name}, but ran right into the ${T.name}. ${T.works}\n(The ${T.name} had a ${trap.chance}% chance and it WORKED. It is used up now: ${left}.)`
+      : `🪤 TRAP FAILED! ${who} ran into the ${T.name}, but... ${T.fails}\n(The ${T.name} had a ${trap.chance}% chance and it FAILED. It is used up now: ${left}.)`;
+    return { worked, note };
+  }
+
+  bossHere(p, place = p.at) {
+    const k = bossAt(place);
+    return k && p.bosses[k] > 0 && this.zombies[place] > 0 ? k : null;
+  }
+
+  hpBar(p, k) { return '❤'.repeat(p.bosses[k]) + '🖤'.repeat(BOSSES[k].hp - p.bosses[k]); }
+
+  bossTurn(p, k, ctx) {
+    const b = BOSSES[k];
+    const lines = [];
+    if (ctx.type === 'fight' && ctx.result === 'good') {
+      p.bosses[k]--;
+      if (p.bosses[k] <= 0) {
+        p.items.push(b.drop);
+        p.stats.itemsFound++;
+        p.stats.bossesBeaten = (p.stats.bossesBeaten || 0) + 1;
+        return { text: `🏆 ${b.name.toUpperCase()} DEFEATED! ${ctx.fill(b.defeat)} (Got ${ITEMS[b.drop].name}! ${ITEMS[b.drop].desc})`, bite: false };
+      }
+      return { text: `⚔️ ${ctx.pick(b.hits)} ${b.name} is too staggered to hit back this turn! (${b.name} health: ${this.hpBar(p, k)})`, bite: false };
+    }
+    const leaving = ctx.type === 'travel';
+    const chance = Math.round(b.attack * (p.stay === 0 || leaving ? 0.5 : 1) * (['hide', 'sneak'].includes(ctx.type) && ctx.result === 'good' ? 0.5 : 1));
+    if (Math.random() * 100 >= chance) {
+      lines.push(`🧟 ${b.name.toUpperCase()} ATTACKS${leaving ? ` as ${p.name} tries to leave` : ''}... and MISSES! ${ctx.pick(b.misses)} (${chance}% chance to hit)`);
+      return { text: lines.join('\n\n'), bite: false };
+    }
+    lines.push(`🧟 ${b.name.toUpperCase()} ATTACKS${leaving ? ` as ${p.name} tries to leave` : ''}! ${ctx.pick(b.bites)}`);
+    if (p.god) return { text: lines.join('\n\n') + ' (God mode: the bite does nothing.)', bite: false };
+    if (k === 'henderson' && p.traps.length) {
+      const trap = this.springTrap(p, 'Mr. Henderson');
+      lines.push(trap.note);
+      if (trap.worked) return { text: lines.join('\n\n'), bite: false };
+    }
+    return { text: lines.join('\n\n'), bite: true };
   }
 
   bunkerBar(p) { return '■'.repeat(p.bunkerTurns) + '□'.repeat(bunkerHoldTurns(p) - p.bunkerTurns); }

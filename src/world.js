@@ -458,3 +458,26 @@ const SKILLS = {
 const maxTraps = p => p.skill === 'trapper' ? 5 : MAX_TRAPS;
 const bunkerBuildTurns = p => p.skill === 'builder' ? 1 : BUNKER_BUILD;
 const bunkerHoldTurns = p => p.skill === 'builder' ? 4 : BUNKER_TURNS;
+
+const BOSSES = {
+  henderson: { name: 'Mr. Henderson', at: 'house', hp: 2, attack: 45, tag: 'Henderson', drop: 'golf_club', fight: 'fight Mr. Henderson',
+    warn: 'Your zombie neighbor is pressing his gray face against the window, still in his bathrobe. He WILL attack while you stay at the house.',
+    bites: ['Mr. Henderson crashes through the screen door and bites {name} on the arm!', 'A gray hand grabs {name} from behind. It is Mr. Henderson, and he gets a bite in before {name} pulls free!'],
+    misses: ['Mr. Henderson lunges at {name}, trips over his bathrobe belt, and falls flat on his face.', 'Mr. Henderson swipes at {name} through the window but only gets a handful of curtain.'],
+    hits: ['{name} whacks Mr. Henderson with {weapon}. He staggers back into the rose bushes, moaning.', '{name} hits Mr. Henderson with {weapon} and knocks his slippers clean off.'],
+    defeat: 'With one last hit, Mr. Henderson goes down for good. Rest in peace, neighbor. Leaning against his porch is his favorite golf club, and {name} takes it.' },
+  gary: { name: 'Gas Station Gary', at: 'gas', hp: 2, attack: 50, tag: 'Gas-N-Go uniform', drop: 'helmet', fight: 'fight Gary',
+    warn: 'A zombie in a Gas-N-Go uniform with a name tag that says GARY is staggering between the pumps, and he has seen you. He WILL attack while you stay here.',
+    bites: ['Gary bursts out from behind the snack shelf and chomps down on {name}\'s leg!', 'Gary grabs {name} by the backpack and bites {name}\'s shoulder before {name} can shake him off!'],
+    misses: ['Gary charges at {name}, slips on a puddle of spilled soda, and slides right past.', 'Gary reaches for {name} but his name tag gets caught on the door handle.'],
+    hits: ['{name} hits Gary with {weapon}. His name tag goes flying.', '{name} knocks Gary into the ice machine with {weapon}.'],
+    defeat: 'Gary finally goes down, still wearing his Employee of the Month pin. Behind his counter, {name} finds the motorcycle helmet he kept there.' },
+  band: { name: 'The Zombie Marching Band', at: 'school', hp: 3, attack: 45, tag: 'marching band', drop: 'air_horn', fight: 'fight the band',
+    warn: 'The zombie marching band is stomping through the halls, banging drums and blowing broken trumpets. There are a lot of them, and they WILL attack while you stay at the school.',
+    bites: ['The zombie drummer swings his drumsticks, and while {name} ducks, the trombone zombie bites {name}!', 'The band marches right over {name}. A zombie trumpet player gets a bite in!'],
+    misses: ['The band marches straight past {name}, still playing the school fight song.', 'A tuba zombie swings at {name} but gets stuck in its own tuba.'],
+    hits: ['{name} knocks down the drum major with {weapon}. The band loses its rhythm.', '{name} takes out the tuba player with {weapon}. One less zombie in the band.'],
+    defeat: 'The last zombie in the marching band falls with a sad little toot. The halls are finally quiet. The band leader dropped an air horn, and {name} grabs it.' }
+};
+
+const bossAt = place => Object.keys(BOSSES).find(k => BOSSES[k].at === place) || null;
