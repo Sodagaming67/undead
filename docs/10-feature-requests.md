@@ -249,3 +249,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** Each good hit a ⚔️ Fighter lands on a boss takes away 2 hearts instead of 1, with a "⚔️ Fighter skill: DOUBLE DAMAGE (-2 ❤)!" message. A Fighter beats 2-heart bosses in one good hit and 3-heart bosses (the band, The Goalie, The Zombie Bear) in two. The Fighter's description on the skill screen says so. Test: a Fighter with the starting kit beat the marching band in 245 of 300 tries.
 **Files changed:** `src/scenes/GameScene.js`, `src/world.js`
 **Design note:** → [Session 1 — Fighter Double Damage](09-design-decisions.md)
+
+### #28 — Zombies Killed and Hurt on the Leaderboard
+
+**Asked:** "Add how many zombies each player killed/hurt in the round to the leaderboard."
+**Status:** ✓ Done
+**What was built:** Every cousin now has a count of zombies killed and zombies hurt for the game. Winning a fight against regular zombies kills 1–3 (more likely with a weapon), and a fight that goes badly hurts 1. Hitting a boss hurts 1, and beating a boss kills 1. A trap that works hurts 2. Results show the change, for example "(🧟 +3 zombies killed)", and the side panel shows "🧟 ZOMBIES: 5 killed, 2 hurt". The game over leaderboard has new KILLED and HURT columns (in a slightly smaller font so everything fits) and a "🧟 Top zombie slayer" line. The spreadsheet has new "Zombies Killed" and "Zombies Hurt" columns at the end, so older games in the spreadsheet still line up. Admin player cards show the counts too. Also fixed: the game over screen's side panel no longer wrongly says "scroll for more".
+**Files changed:** `src/scenes/GameScene.js`, `src/admin.js`
+**Design note:** → [Session 1 — Zombie Kill Counts](09-design-decisions.md)

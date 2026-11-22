@@ -283,7 +283,7 @@ class AdminPanel {
     };
     meta.append(hearts, metaItem('📍', LOCATIONS[p.at].name), metaItem('Items', String(p.items.length)),
       metaItem('Vehicles', String(p.vehicles.length)), metaItem('Team', String(p.team.length)), metaItem('Turns', String(p.turns)),
-      metaItem('🪤', String(p.traps.length)), metaItem('🏆', `${Object.keys(BOSSES).filter(k => p.bosses[k] <= 0).length}/${Object.keys(BOSSES).length}`), metaItem('🛡', p.inBunker ? `inside (${p.bunkerTurns})` : p.bunkerBuilt ? 'built' : `${p.bunkerProgress}/${bunkerBuildTurns(p)}`));
+      metaItem('🧟', `${p.stats.zombiesKilled} killed / ${p.stats.zombiesHurt} hurt`), metaItem('🪤', String(p.traps.length)), metaItem('🏆', `${Object.keys(BOSSES).filter(k => p.bosses[k] <= 0).length}/${Object.keys(BOSSES).length}`), metaItem('🛡', p.inBunker ? `inside (${p.bunkerTurns})` : p.bunkerBuilt ? 'built' : `${p.bunkerProgress}/${bunkerBuildTurns(p)}`));
 
     const actions = this.el('div', 'ad-actions');
     actions.append(

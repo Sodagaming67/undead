@@ -250,3 +250,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** In `bossTurn`, a successful fight takes 2 boss hearts for `p.skill === 'fighter'` (never going below 0).
 **Why this way:** Bosses are the only enemies with health, so "damage" means boss damage. Double damage is easy for kids to see and understand, unlike a slightly bigger boost to the hidden dice roll.
 **What was ruled out:** Raising the Fighter's fight boost further (it is already +20, and it wouldn't feel like "more damage").
+
+### Zombie Kill Counts
+
+**What was asked:** Show how many zombies each player killed and hurt on the leaderboard.
+**What was built:** `stats.zombiesKilled` and `stats.zombiesHurt`. These are counted in `resolve` (regular fights, using the rolled result before boss bites), `bossTurn` (boss hits and defeats) and `springTrap` (traps that work). There are new leaderboard columns, and two new CSV columns are added after Score.
+**Why this way:** The game has no individual zombies, so the counts come from the actions that clearly hurt or kill them. Adding the CSV columns at the end keeps old saved rows (which don't have them) lined up with the header.
+**What was ruled out:** Adding kills to the score (that would change how earlier games compare in the spreadsheet).

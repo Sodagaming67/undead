@@ -22,7 +22,7 @@ class GameScene extends Phaser.Scene {
       at: 'house', spot: null, spotFresh: false, justArrived: true,
       items: [], vehicles: [], found: {}, team: [], teamHearts: {}, orders: {}, lost: [], met: [], eventIdx: {},
       streetSearched: [], stay: 0, prevTurnAt: null, turns: 0, freeUsed: 0,
-      stats: { fightsWon: 0, timesHurt: 0, miles: 0, visited: ['house'], itemsFound: 0, vehiclesFound: 0, recruited: 0, friendsLost: 0, freeActions: 0 },
+      stats: { fightsWon: 0, timesHurt: 0, zombiesKilled: 0, zombiesHurt: 0, miles: 0, visited: ['house'], itemsFound: 0, vehiclesFound: 0, recruited: 0, friendsLost: 0, freeActions: 0 },
       recap: '', diedRound: 0, death: ''
     }));
     this.round = 1;
@@ -176,6 +176,7 @@ class GameScene extends Phaser.Scene {
     p.items.forEach(k => { counts[k] = (counts[k] || 0) + 1; });
     const items = Object.keys(counts).map(k => ITEMS[k].short + (counts[k] > 1 ? ` x${counts[k]}` : ''));
     if (SKILLS[p.skill]) lines.push('', `SKILL: ${SKILLS[p.skill].icon} ${SKILLS[p.skill].name}`);
+    lines.push('', `🧟 ZOMBIES: ${p.stats.zombiesKilled} killed, ${p.stats.zombiesHurt} hurt`);
     lines.push('', 'BACKPACK: ' + (items.length ? items.join(', ') : '(empty)'));
 
     lines.push('', 'TEAM ORDERS  (type "team protect/fight/hide/follow"):');
@@ -692,12 +693,21 @@ class GameScene extends Phaser.Scene {
       }
     }
 
+    const boss = this.bossHere(p, startAt);
+    if (type === 'fight' && !boss && result === 'good') {
+      const kills = 1 + (weapon ? 1 : 0) + (Math.random() < 0.5 ? 1 : 0);
+      p.stats.zombiesKilled += kills;
+      text += `  (🧟 +${kills} zombie${kills === 1 ? '' : 's'} killed)`;
+    } else if (type === 'fight' && !boss && result === 'hurt') {
+      p.stats.zombiesHurt++;
+      text += '  (🧟 +1 zombie hurt)';
+    }
+
     if (result === 'good') {
       if (type === 'fight') p.stats.fightsWon++;
       text = this.applyRewards(p, type, text);
     }
 
-    const boss = this.bossHere(p, startAt);
     if (boss && !free && !p.inBunker && !bunkerBreaks && result !== 'dead') {
       const turn = this.bossTurn(p, boss, { type, result, fill, pick });
       text += '\n\n' + turn.text;
@@ -827,8 +837,9 @@ class GameScene extends Phaser.Scene {
     const T = TRAPS[trap.kind];
     const left = `${p.traps.length} trap${p.traps.length === 1 ? '' : 's'} left`;
     const worked = Math.random() * 100 < trap.chance;
+    if (worked) p.stats.zombiesHurt += 2;
     const note = worked
-      ? `🪤 TRAP WORKED! ${who} came for ${p.name}, but ran right into the ${T.name}. ${T.works}\n(The ${T.name} had a ${trap.chance}% chance and it WORKED. It is used up now: ${left}.)`
+      ? `🪤 TRAP WORKED! ${who} came for ${p.name}, but ran right into the ${T.name}. ${T.works}\n(The ${T.name} had a ${trap.chance}% chance and it WORKED. It is used up now: ${left}.) (🧟 +2 zombies hurt)`
       : `🪤 TRAP FAILED! ${who} ran into the ${T.name}, but... ${T.fails}\n(The ${T.name} had a ${trap.chance}% chance and it FAILED. It is used up now: ${left}.)`;
     return { worked, note };
   }
@@ -847,6 +858,8 @@ class GameScene extends Phaser.Scene {
       const fighter = p.skill === 'fighter';
       p.bosses[k] = Math.max(0, p.bosses[k] - (fighter ? 2 : 1));
       const power = fighter ? ' ⚔️ Fighter skill: DOUBLE DAMAGE (-2 ❤)!' : '';
+      if (p.bosses[k] <= 0) p.stats.zombiesKilled++;
+      else p.stats.zombiesHurt++;
       if (p.bosses[k] <= 0) {
         p.items.push(b.drop);
         p.stats.itemsFound++;
@@ -1033,11 +1046,13 @@ class GameScene extends Phaser.Scene {
 
     const ranked = this.ranking(winner);
     const pad = (s, n) => String(s).slice(0, n).padEnd(n);
-    const lines = [pad('#', 3) + pad('NAME', 12) + pad('TURNS', 7) + pad('RESULT', 14) + pad('ITEMS', 7) + pad('FRIENDS', 9) + pad('MILES', 7) + 'SCORE'];
+    const lines = [pad('#', 3) + pad('NAME', 11) + pad('TURNS', 6) + pad('RESULT', 13) + pad('KILLED', 7) + pad('HURT', 5) + pad('ITEMS', 6) + pad('FRIENDS', 8) + pad('MILES', 6) + 'SCORE'];
     ranked.forEach((p, i) => {
-      lines.push(pad(i + 1, 3) + pad(p.name, 12) + pad(p.turns, 7) + pad(p.escaped ? 'ESCAPED ' + ESCAPES[p.escaped].icon : p.sitOut && p.alive ? 'SAT OUT' : p.alive ? 'SURVIVED' : `died rnd ${p.diedRound}`, 14) +
-        pad(p.stats.itemsFound, 7) + pad(p.stats.recruited, 9) + pad(p.stats.miles, 7) + this.score(p, winner));
+      lines.push(pad(i + 1, 3) + pad(p.name, 11) + pad(p.turns, 6) + pad(p.escaped ? 'ESCAPED ' + ESCAPES[p.escaped].icon : p.sitOut && p.alive ? 'SAT OUT' : p.alive ? 'SURVIVED' : `died rnd ${p.diedRound}`, 13) +
+        pad(p.stats.zombiesKilled, 7) + pad(p.stats.zombiesHurt, 5) + pad(p.stats.itemsFound, 6) + pad(p.stats.recruited, 8) + pad(p.stats.miles, 6) + this.score(p, winner));
     });
+    const killer = ranked.slice().sort((a, b) => b.stats.zombiesKilled - a.stats.zombiesKilled)[0];
+    if (killer.stats.zombiesKilled > 0) lines.push('', `🧟 Top zombie slayer: ${killer.name} with ${killer.stats.zombiesKilled} zombies killed!`);
     lines.push('');
     ranked.filter(p => !p.alive).forEach(p => {
       const last = p.death.length > 45 ? p.death.slice(0, 45) + '...' : p.death;
@@ -1050,10 +1065,12 @@ class GameScene extends Phaser.Scene {
     this.saveHistory(ranked, winner);
     this.recapText.setText('');
     this.storyText.setY(146);
-    this.storyText.setText(lines.join('\n')).setColor('#ffffff');
+    this.storyText.setText(lines.join('\n')).setColor('#ffffff').setFontSize(14);
     this.inputText.setText('');
     this.hintText.setText('');
     this.panelText.setText('GAME OVER\n\nThanks for playing UNDEAD INC!\n\nPress S to save a spreadsheet of everyone\'s stats (this game and every earlier game on this computer).\n\nIt goes to your Downloads folder as undead-inc-results.csv. Open it with Excel or Google Sheets.');
+    this.panelScroll = 0;
+    this.scrollBy('panel', 0);
     this.footerText.setText('S = save spreadsheet     ENTER = play again with the same cousins     ESC = main menu');
     this.resetScroll();
     this.drawStatus();
@@ -1064,7 +1081,7 @@ class GameScene extends Phaser.Scene {
     return ranked.map((p, i) => [
       date, this.players.length, i + 1, p.name, p.escaped ? 'Escaped by ' + ESCAPES[p.escaped].name.toLowerCase() : p.sitOut && p.alive ? 'Sat out' : p.alive ? 'Survived' : p.heartbroken ? 'Died of heartbreak' : 'Died', p.alive ? '' : p.diedRound, p.turns, p.stats.freeActions,
       p.alive ? p.hearts : 0, p.stats.visited.length, p.stats.miles, p.stats.itemsFound, p.stats.vehiclesFound, p.stats.recruited,
-      p.stats.friendsLost, p.stats.fightsWon, p.stats.timesHurt, p.alive ? '' : p.death, this.score(p, winner)
+      p.stats.friendsLost, p.stats.fightsWon, p.stats.timesHurt, p.alive ? '' : p.death, this.score(p, winner), p.stats.zombiesKilled, p.stats.zombiesHurt
     ]);
   }
 
@@ -1086,7 +1103,7 @@ class GameScene extends Phaser.Scene {
   }
 
   downloadSpreadsheet() {
-    const header = ['Game #', 'Date', 'Players', 'Place', 'Name', 'Result', 'Round Died', 'Full Turns', 'Small Actions', 'Hearts Left', 'Places Visited', 'Miles Traveled', 'Items Found', 'Vehicles Found', 'Survivors Recruited', 'Survivors Lost', 'Fights Won', 'Times Hurt', 'Last Action', 'Score'];
+    const header = ['Game #', 'Date', 'Players', 'Place', 'Name', 'Result', 'Round Died', 'Full Turns', 'Small Actions', 'Hearts Left', 'Places Visited', 'Miles Traveled', 'Items Found', 'Vehicles Found', 'Survivors Recruited', 'Survivors Lost', 'Fights Won', 'Times Hurt', 'Last Action', 'Score', 'Zombies Killed', 'Zombies Hurt'];
     let rows = this.loadHistory();
     if (!rows.length) rows = this.thisGame;
     const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
