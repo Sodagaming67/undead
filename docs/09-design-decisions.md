@@ -138,3 +138,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** `SCHOOL_LOCKER_TEXT` (hurt and dead) and `ZOMBIE_INSIDE` (a pattern that spots "zombie was inside" lines). In `resolve`, hide and search results that are not safe check what the player typed: school + locker uses the locker scenes; any other cabinet, cupboard or locker filters out the "zombie inside" lines. `ENTER_TEXT.deadOnWay` is used when entering a locker or cabinet spot outside the school.
 **Why this way:** Checking the player's own words means the story matches what they said they were hiding in, without adding a new action type. A 4,000-try test per case showed 0 zombies inside cabinets or non-school lockers.
 **What was ruled out:** Removing every "hiding spot already had a zombie" line (it is still funny for closets, dumpsters and so on).
+
+### Secret Admin Mode
+
+**What was asked:** A secret typed command that gives the user control of the whole game.
+**What was built:** `ADMIN_CODE` and `adminCommand()` in `GameScene`. `resolve()` checks for admin input first, so the code and `/` commands never reach the word-finder, never use up a turn, and show their reply in the hint line. God mode and curse change the dice result right after `rollOutcome`. Curse only affects a real move and only once.
+**Why this way:** The admin types in the same box as everyone else, so cousins can't tell anything special is happening except for the different cursor. The code is a phrase no one would type by accident. The word "admin" on its own still gets the normal "no cheating" reply.
+**What was ruled out:** A secret key shortcut (the user asked for a typed command). A separate admin screen (everyone would see it on the shared screen).

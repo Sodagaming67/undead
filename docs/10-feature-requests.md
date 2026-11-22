@@ -121,3 +121,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** Removed the "zombie in the cabinet" search death. When you hide in or search a cabinet, cupboard, or a locker outside the school, the game never picks a story where a zombie was inside it. Entering the radio tower's Supply Locker can't say it was full of zombies either. At the school, hiding in or searching lockers uses new locker scenes where zombies burst out, and there is a new school event where a row of lockers bangs open.
 **Files changed:** `src/stories.js`, `src/world.js`, `src/scenes/GameScene.js`
 **Design note:** → [Session 1 — Cabinets and Lockers](09-design-decisions.md)
+
+### #12 — Secret Admin Mode
+
+**Asked:** "Add a special secret command I can type to enter an admin mode where I am in control of the whole game."
+**Status:** ✓ Done
+**What was built:** On any turn, typing `zombie king 67` and pressing ENTER turns admin mode on (type it again or `/off` to turn it off). It doesn't use up the turn. While it's on, the typing cursor is a block (▮) instead of _, so only the admin can tell. Admin commands start with `/` and can name a player (no name = whoever's turn it is): `/heal`, `/hurt`, `/kill`, `/revive`, `/god` (every move works), `/curse` (next real move goes badly), `/give <item or all>`, `/vehicle <car/motorcycle/bike/skateboard/all>`, `/teleport <place>`, `/recruit <survivor>`, `/skip`, `/round <number>`, `/win`, `/items`, `/places`, `/help`. Commands never use up a turn.
+**Files changed:** `src/scenes/GameScene.js`
+**Design note:** → [Session 1 — Secret Admin Mode](09-design-decisions.md)

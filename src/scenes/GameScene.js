@@ -4,6 +4,8 @@ const PLAYER_COLORS = ['#ff6b6b', '#4dabf7', '#69db7c', '#ffd43b', '#da77f2', '#
 const HIT_CHANCE = { follow: 0.35, protect: 0.7, fight: 0.5, hide: 0 };
 const SAVE_CHANCE = { follow: 0.5, protect: 0.75, fight: 0.5, hide: 0 };
 const HISTORY_KEY = 'undeadIncHistory';
+const ADMIN_CODE = 'zombie king 67';
+const ADMIN_HELP = '👑 ADMIN: /heal /hurt /kill /revive /god /curse /give /vehicle /teleport /recruit /skip /round /win /items /places /off   (add a name, like "/heal ann". No name = whoever\'s turn it is)';
 
 class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
@@ -177,7 +179,7 @@ class GameScene extends Phaser.Scene {
   drawInput() {
     if (this.phase !== 'typing') return;
     this.inputText.setY(this.storyText.y + this.storyText.height + 22);
-    this.inputText.setText(`What does ${this.current.name} do?\n> ` + this.typed + (this.cursorOn ? '_' : ''));
+    this.inputText.setText(`What does ${this.current.name} do?\n> ` + this.typed + (this.cursorOn ? (this.admin ? '▮' : '_') : ''));
     this.hintText.setY(this.inputText.y + this.inputText.height + 10);
     this.hintText.setText(this.hint);
   }
@@ -259,7 +261,95 @@ class GameScene extends Phaser.Scene {
     this.showResult(text, ['ORDERS GIVEN', '#66ccff'], true);
   }
 
+  adminCommand() {
+    const raw = this.typed.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (raw === ADMIN_CODE) {
+      this.admin = !this.admin;
+      return this.admin ? ADMIN_HELP : 'Admin mode off.';
+    }
+    if (!this.admin || !raw.startsWith('/')) return null;
+
+    const words = raw.slice(1).split(' ');
+    const cmd = words.shift();
+    let target = this.current;
+    const named = words.length && this.players.find(o => o.name.toLowerCase().startsWith(words[0]));
+    if (named) { target = named; words.shift(); }
+    const rest = words.join(' ');
+    const t = target;
+    const findIn = (obj, label) => Object.keys(obj).find(k => k === rest.replace(/ /g, '_') || (obj[k][label] || '').toLowerCase().includes(rest));
+
+    switch (cmd) {
+      case 'off': this.admin = false; return 'Admin mode off.';
+      case 'help': return ADMIN_HELP;
+      case 'heal': t.hearts = 3; break;
+      case 'hurt':
+        if (t.hearts > 1) { t.hearts--; break; }
+        return `${t.name} only has 1 heart. Use /kill if you really mean it.`;
+      case 'kill':
+        if (!t.alive) return `${t.name} is already dead.`;
+        t.alive = false; t.hearts = 0; t.diedRound = this.round; t.death = 'struck down by a mysterious force';
+        if (t === this.current) { this.nextTurn(); return `💀 ${t.name} was struck down by a mysterious force.`; }
+        if (this.players.length > 1 && this.players.filter(o => o.alive).length <= 1) { this.gameOver(this.players.find(o => o.alive)); return ''; }
+        break;
+      case 'revive':
+        if (t.alive) return `${t.name} is not dead.`;
+        t.alive = true; t.hearts = 3; t.heartbroken = false; t.death = '';
+        break;
+      case 'god': t.god = !t.god; t.curse = false; return `${t.name} god mode ${t.god ? 'ON: every move works' : 'OFF'}.`;
+      case 'curse': t.curse = true; t.god = false; return `${t.name} is cursed. Their next real move will go badly.`;
+      case 'give': {
+        const item = !rest || rest === 'all' ? null : findIn(ITEMS, 'name');
+        if (rest === 'all') Object.keys(ITEMS).forEach(k => t.items.push(k));
+        else if (item) t.items.push(item);
+        else return `No item called "${rest}". Type /items to see them all.`;
+        break;
+      }
+      case 'vehicle': {
+        const v = !rest || rest === 'all' ? null : findIn(VEHICLES, 'name');
+        if (rest === 'all') t.vehicles = Object.keys(VEHICLES);
+        else if (v) { if (!t.vehicles.includes(v)) t.vehicles.push(v); }
+        else return 'Vehicles: car, motorcycle, bike, skateboard, all';
+        break;
+      }
+      case 'teleport': case 'tp': {
+        const place = TOWN.find(k => k === rest || LOCATIONS[k].name.toLowerCase().includes(rest));
+        if (!rest || !place) return `Places: ${TOWN.join(', ')}`;
+        Object.assign(t, { at: place, spot: null, justArrived: true, spotFresh: false, stay: 0, prevTurnAt: place, cameFrom: null });
+        if (!t.stats.visited.includes(place)) t.stats.visited.push(place);
+        if (t === this.current) this.prepareStory(t);
+        break;
+      }
+      case 'recruit': {
+        const s = Object.keys(SURVIVORS).find(k => k === rest || SURVIVORS[k].name.toLowerCase().includes(rest));
+        if (!rest || !s) return `Survivors: ${Object.keys(SURVIVORS).join(', ')}`;
+        if (!t.team.includes(s)) { t.team.push(s); t.teamHearts[s] = 2; t.stats.recruited++; }
+        if (!t.met.includes(s)) t.met.push(s);
+        break;
+      }
+      case 'skip': this.nextTurn(); return `Skipped ${t.name}'s turn.`;
+      case 'round': {
+        const n = parseInt(rest, 10);
+        if (!(n >= 1)) return 'Type a number, like /round 5';
+        this.round = n;
+        break;
+      }
+      case 'win': this.gameOver(t); return '';
+      case 'items': return 'Items: ' + Object.keys(ITEMS).join(', ') + ', all';
+      case 'places': return 'Places: ' + TOWN.join(', ');
+      default: return `Unknown command "/${cmd}". ${ADMIN_HELP}`;
+    }
+    if (t === this.current) this.showTurn();
+    return `✅ Done: ${this.typed.trim()}`;
+  }
+
   resolve() {
+    const adminReply = this.adminCommand();
+    if (adminReply !== null) {
+      if (this.phase !== 'typing') return;
+      this.typed = '';
+      this.hint = adminReply;
+      return this.drawInput();
+    }
     const p = this.current;
     const loc = LOCATIONS[p.at];
     const said = ' ' + this.typed.toLowerCase().replace(/[^a-z0-9 ]/g, ' ') + ' ';
@@ -313,6 +403,8 @@ class GameScene extends Phaser.Scene {
     if (!free) p.last = type;
     const baseOdds = type === 'enter' ? (parsed.crash ? ACTIONS.drive.odds : [65, 25, 10]) : ACTIONS[style].odds;
     let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0));
+    if (p.god) result = 'good';
+    else if (p.curse && !free) { result = p.hearts > 1 ? 'hurt' : 'dead'; p.curse = false; }
 
     const weapon = p.items.reduce((best, k) => ((ITEMS[k].boost || {}).fight || 0) > (best ? ITEMS[best].boost.fight : 0) ? k : best, null);
     const destLoc = parsed.dest ? LOCATIONS[parsed.dest] : loc;
