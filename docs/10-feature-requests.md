@@ -241,3 +241,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** The 🎒 Scavenger skill and its "finds 2 items at once" search bonus are gone. The skill picker now lists 6 skills (press 1–6, or R for random).
 **Files changed:** `src/world.js`, `src/scenes/GameScene.js`
 **Design note:** → [Session 1 — Scavenger Removed](09-design-decisions.md)
+
+### #27 — Fighter Does Double Damage
+
+**Asked:** "Make the fighter do more damage."
+**Status:** ✓ Done
+**What was built:** Each good hit a ⚔️ Fighter lands on a boss takes away 2 hearts instead of 1, with a "⚔️ Fighter skill: DOUBLE DAMAGE (-2 ❤)!" message. A Fighter beats 2-heart bosses in one good hit and 3-heart bosses (the band, The Goalie, The Zombie Bear) in two. The Fighter's description on the skill screen says so. Test: a Fighter with the starting kit beat the marching band in 245 of 300 tries.
+**Files changed:** `src/scenes/GameScene.js`, `src/world.js`
+**Design note:** → [Session 1 — Fighter Double Damage](09-design-decisions.md)

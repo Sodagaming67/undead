@@ -446,7 +446,7 @@ const TRAPS = {
 };
 
 const SKILLS = {
-  fighter: { name: 'Fighter', icon: '⚔️', desc: 'Fights 20% better.', boost: { fight: 20 }, kit: ['katana', 'first_aid'] },
+  fighter: { name: 'Fighter', icon: '⚔️', desc: 'Fights 20% better and does DOUBLE DAMAGE to bosses (each good hit takes 2 hearts).', boost: { fight: 20 }, kit: ['katana', 'first_aid'] },
   trapper: { name: 'Trapper', icon: '🪤', desc: 'Setting a trap is a FREE small action, traps are 20% more likely to work, and can have 5 traps instead of 3.', boost: {}, kit: ['duct_tape', 'rope'] },
   builder: { name: 'Builder', icon: '🔨', desc: 'Barricades 25% better. Builds a bunker in 1 turn instead of 2, and it holds 4 turns instead of 3.', boost: { barricade: 25 }, kit: ['hammer_nails', 'crowbar'] },
   medic: { name: 'Medic', icon: '🩺', desc: 'Healing works better and gives 1 extra heart.', boost: { heal: 25, help: 15 }, kit: ['first_aid', 'first_aid', 'water_bottle'] },

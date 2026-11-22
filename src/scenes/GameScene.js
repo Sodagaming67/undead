@@ -844,14 +844,16 @@ class GameScene extends Phaser.Scene {
     const b = BOSSES[k];
     const lines = [];
     if (ctx.type === 'fight' && ctx.result === 'good') {
-      p.bosses[k]--;
+      const fighter = p.skill === 'fighter';
+      p.bosses[k] = Math.max(0, p.bosses[k] - (fighter ? 2 : 1));
+      const power = fighter ? ' ⚔️ Fighter skill: DOUBLE DAMAGE (-2 ❤)!' : '';
       if (p.bosses[k] <= 0) {
         p.items.push(b.drop);
         p.stats.itemsFound++;
         p.stats.bossesBeaten = (p.stats.bossesBeaten || 0) + 1;
-        return { text: `🏆 ${b.name.toUpperCase()} DEFEATED! ${ctx.fill(b.defeat)} (Got ${ITEMS[b.drop].name}! ${ITEMS[b.drop].desc})`, bite: false };
+        return { text: `🏆 ${b.name.toUpperCase()} DEFEATED!${power} ${ctx.fill(b.defeat)} (Got ${ITEMS[b.drop].name}! ${ITEMS[b.drop].desc})`, bite: false };
       }
-      return { text: `⚔️ ${ctx.pick(b.hits)} ${b.name} is too staggered to hit back this turn! (${b.name} health: ${this.hpBar(p, k)})`, bite: false };
+      return { text: `⚔️ ${ctx.pick(b.hits)}${power} ${b.name} is too staggered to hit back this turn! (${b.name} health: ${this.hpBar(p, k)})`, bite: false };
     }
     const leaving = ctx.type === 'travel';
     const chance = Math.round(b.attack * (p.stay === 0 || leaving ? 0.5 : 1) * (['hide', 'sneak'].includes(ctx.type) && ctx.result === 'good' ? 0.5 : 1));

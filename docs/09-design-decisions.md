@@ -243,3 +243,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** Removed `SKILLS.scavenger` and the second `takeItem` call in `resolve`. The setup screen builds its list from `SKILLS`, so it now shows 6 skills and "Press 1-6" automatically.
 **Why this way:** Nothing else depended on the skill.
 **What was ruled out:** Nothing.
+
+### Fighter Double Damage
+
+**What was asked:** Fighters should do more damage.
+**What was built:** In `bossTurn`, a successful fight takes 2 boss hearts for `p.skill === 'fighter'` (never going below 0).
+**Why this way:** Bosses are the only enemies with health, so "damage" means boss damage. Double damage is easy for kids to see and understand, unlike a slightly bigger boost to the hidden dice roll.
+**What was ruled out:** Raising the Fighter's fight boost further (it is already +20, and it wouldn't feel like "more damage").
