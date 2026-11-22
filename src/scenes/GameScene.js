@@ -233,7 +233,7 @@ class GameScene extends Phaser.Scene {
     const boss = !p.inBunker && this.bossHere(p);
     if (boss) {
       const b = BOSSES[boss];
-      extra.push(`🧟 ${b.name.toUpperCase()} IS HERE! (health ${this.hpBar(p, boss)}) ${b.warn} Type "${b.fight}" to fight back, or get away from here.`);
+      extra.push(`🧟 ${b.name.toUpperCase()} IS HERE! (health ${this.hpBar(p, boss)}) ${b.warn} You don't have to fight it: you can hide, sneak, or leave. Or type "${b.fight}" to take it on. Beating it earns a reward!`);
     }
     const esc = this.escapeHere(p);
     if (esc) {
