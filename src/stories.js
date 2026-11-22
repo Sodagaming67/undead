@@ -290,7 +290,7 @@ const FOREST_EXIT_WORDS = ['road', 'street', 'highway', 'out of the woods', 'out
 
 const MOVE_WORDS = ['go', 'went', 'head', 'walk', 'travel', 'move', 'ride', 'rid', 'visit', 'enter', 'return', 'back to', 'over to', 'to the', 'toward', 'towards', 'make my way', 'get to', 'run', 'ran', 'sprint', 'flee', 'escap', 'skate', 'bike', 'hike', 'jog', 'dash', 'race', 'drive', 'driv', 'sneak to', 'crawl to', 'hurry', 'rush', 'leave for', 'set off', 'journey', 'way to', 'cross', 'look for', 'find'];
 
-const ZOMBIE_WORDS = ['zombie', 'monster', 'undead', 'horde', 'walker', 'corpse', 'ghoul', 'dead', 'creature', 'gary', 'henderson', 'lunch lady', 'hot dog', 'goalie', 'mannequin'];
+const ZOMBIE_WORDS = ['zombie', 'fang', 'monster', 'undead', 'horde', 'walker', 'corpse', 'ghoul', 'dead', 'creature', 'gary', 'henderson', 'lunch lady', 'hot dog', 'goalie', 'mannequin'];
 
 const PRIORITY = ['fight', 'run', 'drive', 'climb', 'hide', 'sneak', 'barricade', 'trick', 'call', 'heal', 'help', 'supplies', 'dumb'];
 
@@ -465,7 +465,7 @@ function parseAction(typed, p) {
   if (SELF_HARM_WORDS.some(w => hasExact(raw, w))) return { hint: SELF_HARM_REPLY.replaceAll('{name}', p.name) };
   if (CLAIM_WORDS.some(w => hasExact(raw, w))) return { hint: CLAIM_REPLY.replaceAll('{name}', p.name) };
 
-  const t = cleanUp(typed);
+  const t = cleanUp(typed).replace(/\b(zombie|undead|rabid|evil) (dog|dogs|puppy|pup|doggy|doggo|hound|mutt)\b/g, 'fang');
   const here = LOCATIONS[p.at];
 
   if (CHEAT_WORDS.some(w => hasExact(t, w))) {

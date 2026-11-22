@@ -215,3 +215,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** Seven more entries in `BOSSES`, one for each remaining `TOWN` place. No code changes were needed except clearer wording in the story line, because bosses are found by place (`bossAt`) and `bossHere` only matches main places.
 **Why this way:** The park boss is the ice cream man instead of a zombie dog, because "dog" would match Biscuit, the friendly survivor dog. The hospital boss is "the surgeon" so "doctor" still means Dr. Shah. A check script confirmed that no fight command uses a survivor's name.
 **What was ruled out:** Making fighting required (the request said bosses are optional). Lowering every boss's attack (the simulation showed the game is only about one turn shorter).
+
+### Zombie Dog Boss
+
+**What was asked:** Use the zombie dog as the park boss instead of the ice cream man.
+**What was built:** `BOSSES.fang` replaces `icecream`. In `parseAction`, the cleaned-up text changes "zombie dog" and similar phrases into "fang" (now one of the `ZOMBIE_WORDS`) before survivor and teammate matching.
+**Why this way:** This fixes the "dog" clash with Biscuit at the source, so every later check (recruiting, team orders, missing-survivor hints) sees the boss and the friendly dog as different things without any special cases.
+**What was ruled out:** Removing "dog" from Biscuit's aliases (players naturally call Biscuit "the dog").

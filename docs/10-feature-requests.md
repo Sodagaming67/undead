@@ -209,3 +209,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** Seven new bosses, so all 10 main places have one: Mister Freezy the zombie ice cream man (park, ❤❤, drops a megaphone), Security Guard Stan (mall, ❤❤, pepper spray), The Goalie (sporting goods, ❤❤❤, hockey stick), Inmate 404 (police, ❤❤, riot shield), The Zombie Surgeon (hospital, ❤❤, first aid kit), The Zombie Bear (Whispering Woods, ❤❤❤, crossbow) and The Lineman (radio tower, ❤❤, flare gun). They work like the first three bosses. Bosses only belong to main places, never forests, roads, or stores/rooms. The story now clearly says fighting is optional: "You don't have to fight it: you can hide, sneak, or leave. Or type '___' to take it on. Beating it earns a reward!" The fight commands avoid survivor names (for example, the hospital boss is "the surgeon" so "doctor" still means Dr. Shah). Simulation: with random sensible moves, the average turns survived went from 4.4 to 3.6.
 **Files changed:** `src/world.js`, `src/scenes/GameScene.js`
 **Design note:** → [Session 1 — Bosses Everywhere](09-design-decisions.md)
+
+### #23 — Park Boss Is the Zombie Dog
+
+**Asked:** "Change the ice cream man back to the zombie dog."
+**Status:** ✓ Done
+**What was built:** Mister Freezy was replaced by Fang the Zombie Dog at Maple Park (❤❤, 55% to hit because it's fast). Beating it drops an aluminum baseball bat. Its fight command is "fight the zombie dog" (or "fight Fang"). To keep Biscuit working, the word-finder turns "zombie dog" (and "undead/rabid/evil dog", "zombie puppy/hound/mutt") into the boss before it checks for survivors. Plain "dog" still means Biscuit, so "pet the dog" and "ask the dog to join" still recruit Biscuit, "dog protect me" still gives Biscuit an order, and "fight the zombie dog" with Biscuit on your team fights Fang. After Fang is beaten, the park's "zombie dog bursts out of the bushes" event stops appearing.
+**Files changed:** `src/world.js`, `src/stories.js`
+**Design note:** → [Session 1 — Zombie Dog Boss](09-design-decisions.md)
