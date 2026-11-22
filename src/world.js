@@ -444,3 +444,17 @@ const TRAPS = {
     works: 'SNAP SNAP SNAP! The mousetraps clamp onto zombie toes, and the zombies get so confused they turn around and leave.',
     fails: 'The mousetraps snap, but they are way too small to bother a zombie.' }
 };
+
+const SKILLS = {
+  fighter: { name: 'Fighter', icon: '⚔️', desc: 'Fights 20% better.', boost: { fight: 20 }, kit: ['katana', 'first_aid'] },
+  trapper: { name: 'Trapper', icon: '🪤', desc: 'Setting a trap is a FREE small action, traps are 20% more likely to work, and can have 5 traps instead of 3.', boost: {}, kit: ['duct_tape', 'rope'] },
+  builder: { name: 'Builder', icon: '🔨', desc: 'Barricades 25% better. Builds a bunker in 1 turn instead of 2, and it holds 4 turns instead of 3.', boost: { barricade: 25 }, kit: ['hammer_nails', 'crowbar'] },
+  medic: { name: 'Medic', icon: '🩺', desc: 'Healing works better and gives 1 extra heart.', boost: { heal: 25, help: 15 }, kit: ['first_aid', 'first_aid', 'water_bottle'] },
+  runner: { name: 'Runner', icon: '🏃', desc: 'Running and traveling are 15% better, and long trips are 25% less risky.', boost: { run: 15, travel: 15 }, kit: ['energy_drink', 'hiking_boots'] },
+  sneak: { name: 'Sneak', icon: '🥷', desc: 'Sneaking and hiding are 20% better.', boost: { sneak: 20, hide: 20 }, kit: ['flashlight', 'binoculars'] },
+  scavenger: { name: 'Scavenger', icon: '🎒', desc: 'Searching is 20% better and finds 2 items at once when there are 2 to find.', boost: { supplies: 20 }, kit: ['road_map', 'pepper_spray'] }
+};
+
+const maxTraps = p => p.skill === 'trapper' ? 5 : MAX_TRAPS;
+const bunkerBuildTurns = p => p.skill === 'builder' ? 1 : BUNKER_BUILD;
+const bunkerHoldTurns = p => p.skill === 'builder' ? 4 : BUNKER_TURNS;

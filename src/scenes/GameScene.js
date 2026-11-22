@@ -24,7 +24,11 @@ class GameScene extends Phaser.Scene {
     }));
     this.round = 1;
     this.turn = 0;
-    this.players.forEach(p => Object.assign(p, { escapeItems: [], traps: [], bunkerProgress: 0, bunkerBuilt: false, bunkerTurns: 0, inBunker: false }));
+    this.players.forEach((p, i) => {
+      Object.assign(p, { escapeItems: [], traps: [], bunkerProgress: 0, bunkerBuilt: false, bunkerTurns: 0, inBunker: false });
+      p.skill = (data.skills || [])[i] || null;
+      if (p.skill) p.items = SKILLS[p.skill].kit.slice();
+    });
     const forests = Phaser.Utils.Array.Shuffle(Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest));
     this.escapes = { heli: forests[0], subway: forests[1] };
     this.escapeAt = {};
@@ -112,7 +116,7 @@ class GameScene extends Phaser.Scene {
       if (woods.length) lines.push(`     🌲 woods beside the road: ${woods.join(', ')} (⚠ deadly)`);
     }
     if (p.at === 'house') {
-      const bunker = p.inBunker ? `INSIDE ${this.bunkerBar(p.bunkerTurns)}` : p.bunkerBuilt ? `ready ${this.bunkerBar(p.bunkerTurns)}` : `${p.bunkerProgress}/${BUNKER_BUILD} built`;
+      const bunker = p.inBunker ? `INSIDE ${this.bunkerBar(p)}` : p.bunkerBuilt ? `ready ${this.bunkerBar(p)}` : `${p.bunkerProgress}/${bunkerBuildTurns(p)} built`;
       lines.push(`     🪤 traps: ${p.traps.length ? p.traps.map(t => `${TRAPS[t.kind].name} ${t.chance}%`).join(', ') : 'none'}`, `     🛡 bunker: ${bunker}`);
     }
     lines.push('', `ESCAPE:  🚁 ${LOCATIONS[this.escapes.heli].name}   🚇 ${LOCATIONS[this.escapes.subway].name}`,
@@ -140,6 +144,7 @@ class GameScene extends Phaser.Scene {
     const counts = {};
     p.items.forEach(k => { counts[k] = (counts[k] || 0) + 1; });
     const items = Object.keys(counts).map(k => ITEMS[k].short + (counts[k] > 1 ? ` x${counts[k]}` : ''));
+    if (SKILLS[p.skill]) lines.push('', `SKILL: ${SKILLS[p.skill].icon} ${SKILLS[p.skill].name}`);
     lines.push('', 'BACKPACK: ' + (items.length ? items.join(', ') : '(empty)'));
 
     lines.push('', 'TEAM ORDERS  (type "team protect/fight/hide/follow"):');
@@ -172,7 +177,7 @@ class GameScene extends Phaser.Scene {
     const parts = [];
     if (p.inBunker) {
       this.turnStory = p.bunkerTurns > 0
-        ? `🛡 ${p.name} is sealed inside the bunker. Outside, the zombies are scratching and pounding on the walls.\n\nBunker strength: ${this.bunkerBar(p.bunkerTurns)} (${p.bunkerTurns} more turn${p.bunkerTurns === 1 ? '' : 's'} before it breaks). Type "wait" to stay safe inside, or "leave the bunker" to climb out.`
+        ? `🛡 ${p.name} is sealed inside the bunker. Outside, the zombies are scratching and pounding on the walls.\n\nBunker strength: ${this.bunkerBar(p)} (${p.bunkerTurns} more turn${p.bunkerTurns === 1 ? '' : 's'} before it breaks). Type "wait" to stay safe inside, or "leave the bunker" to climb out.`
         : `⚠⚠ The bunker is about to BREAK! The walls are split and gray hands are reaching through the cracks. Type "leave the bunker" to get out now, or stay and face the zombies when they break in!`;
       return;
     }
@@ -260,7 +265,7 @@ class GameScene extends Phaser.Scene {
       this.nextTurn();
     } else if (this.phase === 'over') {
       if (e.key === 's' || e.key === 'S') this.downloadSpreadsheet();
-      else if (e.key === 'Enter') this.scene.restart({ names: this.players.map(p => p.name) });
+      else if (e.key === 'Enter') this.scene.restart({ names: this.players.map(p => p.name), skills: this.players.map(p => p.skill) });
       else if (e.key === 'Escape') this.scene.start('MenuScene');
     }
   }
@@ -424,7 +429,7 @@ class GameScene extends Phaser.Scene {
     }
 
     const type = parsed.type;
-    const free = type === 'order' || type === 'recruit' || (type === 'supplies' && parsed.street);
+    const free = type === 'order' || type === 'recruit' || (type === 'supplies' && parsed.street) || (parsed.survival === 'trap' && p.skill === 'trapper');
     if (free && p.freeUsed >= MAX_FREE) {
       this.hint = `${p.name} already used both small actions this turn. Time to make a real move!`;
       this.typed = '';
@@ -443,6 +448,8 @@ class GameScene extends Phaser.Scene {
     if (actionSpot && loc.spots[actionSpot].good.includes(style)) { boost += 20; helpers.push(`${loc.spots[actionSpot].name} is a good spot for that`); }
     const bestItem = p.items.reduce((best, k) => boostOf(ITEMS[k].boost) > (best ? boostOf(ITEMS[best].boost) : 0) ? k : best, null);
     if (bestItem) { boost += boostOf(ITEMS[bestItem].boost); helpers.push(ITEMS[bestItem].short.toLowerCase()); }
+    const skill = SKILLS[p.skill];
+    if (skill && boostOf(skill.boost)) { boost += boostOf(skill.boost); helpers.push(`${skill.icon} ${skill.name} skill`); }
     if (type === 'travel' && parsed.vehicle) { boost += VEHICLES[parsed.vehicle].boost; helpers.push(VEHICLES[parsed.vehicle].name.toLowerCase()); }
     p.team.forEach(k => {
       const order = p.orders[k] || 'follow';
@@ -457,7 +464,7 @@ class GameScene extends Phaser.Scene {
 
     const backtrack = type === 'travel' && parsed.dest === p.cameFrom;
     const route = parsed.forest ? { miles: 0.2, roads: [], path: [p.at, parsed.dest] } : type === 'travel' ? routeTo(p.at, parsed.dest) : null;
-    const miles = route ? route.miles * (parsed.vehicle ? VEHICLES[parsed.vehicle].factor : 1) : 0;
+    const miles = route ? route.miles * (parsed.vehicle ? VEHICLES[parsed.vehicle].factor : 1) * (p.skill === 'runner' ? 0.75 : 1) : 0;
 
     const repeated = !free && !parsed.survival && !['travel', 'supplies', 'enter'].includes(type) && p.last === type;
     const bunkerBreaks = parsed.survival === 'bunkerWait' && p.bunkerTurns <= 0;
@@ -592,6 +599,8 @@ class GameScene extends Phaser.Scene {
       const item = this.takeItem(p, p.at, spotKey);
       if (item) {
         text += ` ${result === 'hurt' ? 'But at least' : 'Nice!'} ${p.name} found ${ITEMS[item].name}! ${ITEMS[item].desc}`;
+        const bonus = p.skill === 'scavenger' ? this.takeItem(p, p.at, spotKey) : null;
+        if (bonus) text += ` 🎒 Scavenger skill: ${p.name} also digs up ${ITEMS[bonus].name}! ${ITEMS[bonus].desc}`;
       } else {
         const anyLeft = Object.keys(loc.spots).some(k => this.itemsLeft(p, p.at, k) > 0);
         text += ` But there is nothing useful left in ${spotName}.${anyLeft ? ' Other stores or rooms here still have stuff (look for 🔎 on the right).' : ' This whole place has been picked clean.'}`;
@@ -689,7 +698,9 @@ class GameScene extends Phaser.Scene {
     if (type === 'heal') {
       if (p.hearts < 3) {
         const healer = p.items.filter(k => ITEMS[k].heals).sort((a, b) => ITEMS[b].heals - ITEMS[a].heals)[0];
-        const gain = Math.min(healer ? ITEMS[healer].heals : 1, 3 - p.hearts);
+        const medic = p.skill === 'medic' ? 1 : 0;
+        const gain = Math.min((healer ? ITEMS[healer].heals : 1) + medic, 3 - p.hearts);
+        if (medic) text += ' 🩺 Medic skill: +1 extra heart.';
         if (healer) {
           p.items.splice(p.items.indexOf(healer), 1);
           text += ` (Used up ${ITEMS[healer].name}.)`;
@@ -715,7 +726,7 @@ class GameScene extends Phaser.Scene {
     return text;
   }
 
-  bunkerBar(turns) { return '■'.repeat(turns) + '□'.repeat(BUNKER_TURNS - turns); }
+  bunkerBar(p) { return '■'.repeat(p.bunkerTurns) + '□'.repeat(bunkerHoldTurns(p) - p.bunkerTurns); }
 
   survivalText(p, parsed, result, pick) {
     const n = p.name;
@@ -725,24 +736,25 @@ class GameScene extends Phaser.Scene {
       case 'trap': {
         const T = TRAPS[parsed.trap];
         const tools = p.items.find(k => ['duct_tape', 'rope', 'hammer_nails'].includes(k));
-        const chance = Math.min(85, T.chance + (tools ? 10 : 0));
+        const trapper = p.skill === 'trapper';
+        const chance = Math.min(trapper ? 95 : 85, T.chance + (tools ? 10 : 0) + (trapper ? 20 : 0));
         p.traps.push({ kind: parsed.trap, chance });
-        return `${ouch}🪤 TRAP SET: ${T.name.toUpperCase()}\n${n} ${T.build}.${tools ? ` The ${ITEMS[tools].short.toLowerCase()} makes it extra sturdy (+10%).` : ''}\n\n` +
-          `HOW IT WORKS: The next time zombies would hurt or kill ${n} here at Your House, this trap goes off first. It has a ${chance}% chance to stop the attack completely. If it fails, the zombies get through like normal. Each trap works only once, whether it works or fails, and traps only protect ${n} while ${n} is at Your House. (Traps ready: ${p.traps.length}/${MAX_TRAPS})`;
+        return `${ouch}🪤 TRAP SET: ${T.name.toUpperCase()}\n${n} ${T.build}.${tools ? ` The ${ITEMS[tools].short.toLowerCase()} makes it extra sturdy (+10%).` : ''}${trapper ? ` 🪤 Trapper skill: ${n} knows exactly where to put it (+20%), and it only took a minute (free small action)!` : ''}\n\n` +
+          `HOW IT WORKS: The next time zombies would hurt or kill ${n} here at Your House, this trap goes off first. It has a ${chance}% chance to stop the attack completely. If it fails, the zombies get through like normal. Each trap works only once, whether it works or fails, and traps only protect ${n} while ${n} is at Your House. (Traps ready: ${p.traps.length}/${maxTraps(p)})`;
       }
       case 'bunkerBuild':
         p.bunkerProgress++;
-        if (p.bunkerProgress < BUNKER_BUILD) {
-          return `${ouch}🛡 ${n} drags the old mattress, the metal shelves and the deep freezer down to the basement and starts building a bunker around the water heater. It is not done yet. (Bunker: ${p.bunkerProgress}/${BUNKER_BUILD} built. Type "build the bunker" again to finish it.)`;
+        if (p.bunkerProgress < bunkerBuildTurns(p)) {
+          return `${ouch}🛡 ${n} drags the old mattress, the metal shelves and the deep freezer down to the basement and starts building a bunker around the water heater. It is not done yet. (Bunker: ${p.bunkerProgress}/${bunkerBuildTurns(p)} built. Type "build the bunker" again to finish it.)`;
         }
         p.bunkerBuilt = true;
-        p.bunkerTurns = BUNKER_TURNS;
+        p.bunkerTurns = bunkerHoldTurns(p);
         return `${ouch}🛡 BUNKER READY! ${n} bolts the last sheet of plywood over the metal shelves and stacks sandbags made of rice and dog food on top. It's small, it's ugly, and it's strong.\n\n` +
-          `HOW IT WORKS: Type "go into the bunker" to seal yourself inside. While ${n} is inside, NOTHING can hurt ${n}, but all ${n} can do is wait or leave. The zombies will pound on it every turn, and it can only hold for ${BUNKER_TURNS} turns. If ${n} is still inside after that, it breaks and the zombies pour in. That will be EXTREMELY dangerous. Type "leave the bunker" to get out first.`;
+          `HOW IT WORKS: Type "go into the bunker" to seal yourself inside. While ${n} is inside, NOTHING can hurt ${n}, but all ${n} can do is wait or leave. The zombies will pound on it every turn, and it can only hold for ${bunkerHoldTurns(p)} turns. If ${n} is still inside after that, it breaks and the zombies pour in. That will be EXTREMELY dangerous. Type "leave the bunker" to get out first.`;
       case 'bunkerEnter':
         p.inBunker = true;
         p.spot = 'basement';
-        return `🛡 ${n} climbs into the bunker and slams the hatch shut. It's dark and it smells like rice, but it's safe. For now.\n\nBunker strength: ${this.bunkerBar(p.bunkerTurns)} (${p.bunkerTurns} turns before it breaks). Next turn type "wait" to stay inside, or "leave the bunker".`;
+        return `🛡 ${n} climbs into the bunker and slams the hatch shut. It's dark and it smells like rice, but it's safe. For now.\n\nBunker strength: ${this.bunkerBar(p)} (${p.bunkerTurns} turns before it breaks). Next turn type "wait" to stay inside, or "leave the bunker".`;
       case 'bunkerLeave':
         p.inBunker = false;
         return `🛡 ${n} carefully opens the hatch and climbs out of the bunker into the basement. The house is quiet... for a moment. (The bunker is still there with ${p.bunkerTurns} turn${p.bunkerTurns === 1 ? '' : 's'} of strength left.)`;
@@ -752,7 +764,7 @@ class GameScene extends Phaser.Scene {
           const warn = p.bunkerTurns === 0
             ? `⚠⚠ The walls are bending and the plywood is splitting! The bunker WILL BREAK next turn. Type "leave the bunker" NOW, or face the zombies when they break in!`
             : `The bunker can hold for ${p.bunkerTurns} more turn${p.bunkerTurns === 1 ? '' : 's'}.`;
-          return `🛡 THUD. THUD. THUD. The zombies pound on the bunker walls all turn, but ${n} stays safe inside.${/\b(wait|stay|rest|sleep|hide|chill)\b/.test(this.typed.toLowerCase()) ? '' : ` (Inside the bunker, ${n} can only wait or leave.)`}\n\nBunker strength: ${this.bunkerBar(p.bunkerTurns)}. ${warn}`;
+          return `🛡 THUD. THUD. THUD. The zombies pound on the bunker walls all turn, but ${n} stays safe inside.${/\b(wait|stay|rest|sleep|hide|chill)\b/.test(this.typed.toLowerCase()) ? '' : ` (Inside the bunker, ${n} can only wait or leave.)`}\n\nBunker strength: ${this.bunkerBar(p)}. ${warn}`;
         }
         p.inBunker = false;
         p.bunkerBuilt = false;

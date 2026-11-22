@@ -448,13 +448,13 @@ function parseSurvival(typed, p) {
   if (bunker) {
     const building = / (build|make|dig|finish|work|construct|start|keep|continue|making|building) /.test(t);
     if (!building && / (go|get|enter|hide|climb|into|inside|in|lock|seal|use) /.test(t)) {
-      if (!p.bunkerBuilt) return { hint: `${p.name} hasn't built a bunker yet! Type "build a bunker". It takes ${BUNKER_BUILD} turns to build.` };
+      if (!p.bunkerBuilt) return { hint: `${p.name} hasn't built a bunker yet! Type "build a bunker". It takes ${bunkerBuildTurns(p)} turn${bunkerBuildTurns(p) === 1 ? "" : "s"} to build.` };
       return { type: 'barricade', survival: 'bunkerEnter' };
     }
     if (p.bunkerBuilt) return { hint: `${p.name}'s bunker is already built! Type "go into the bunker" to hide in it.` };
     return { type: 'barricade', survival: 'bunkerBuild' };
   }
-  if (p.traps.length >= MAX_TRAPS) return { hint: `${p.name} already has ${MAX_TRAPS} traps set up. That's all the house stuff that's left! A trap is used up when it goes off.` };
+  if (p.traps.length >= maxTraps(p)) return { hint: `${p.name} already has ${maxTraps(p)} traps set up. That's all the house stuff that's left! A trap is used up when it goes off.` };
   const unused = Object.keys(TRAPS).filter(k => !p.traps.some(x => x.kind === k));
   const kind = unused.find(k => TRAPS[k].words.some(w => t.includes(' ' + w)));
   return { type: 'barricade', survival: 'trap', trap: kind || Phaser.Utils.Array.GetRandom(unused) };

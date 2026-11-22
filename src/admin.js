@@ -262,6 +262,7 @@ class AdminPanel {
     const pills = this.el('div', 'ad-pills');
     if (p === s.current && p.alive) pills.append(this.pill('Playing now', 'accent'));
     pills.append(p.alive ? this.pill('Alive') : this.pill('Dead', 'danger'));
+    if (SKILLS[p.skill]) pills.append(this.pill(`${SKILLS[p.skill].icon} ${SKILLS[p.skill].name}`));
     if (s.nextUp === p) pills.append(this.pill('Up next', 'accent'));
     if (p.sitOut) pills.append(this.pill('Sitting out', 'violet'));
     if (p.god) pills.append(this.pill('God mode', 'warn'));
@@ -282,7 +283,7 @@ class AdminPanel {
     };
     meta.append(hearts, metaItem('📍', LOCATIONS[p.at].name), metaItem('Items', String(p.items.length)),
       metaItem('Vehicles', String(p.vehicles.length)), metaItem('Team', String(p.team.length)), metaItem('Turns', String(p.turns)),
-      metaItem('🪤', String(p.traps.length)), metaItem('🛡', p.inBunker ? `inside (${p.bunkerTurns})` : p.bunkerBuilt ? 'built' : `${p.bunkerProgress}/${BUNKER_BUILD}`));
+      metaItem('🪤', String(p.traps.length)), metaItem('🛡', p.inBunker ? `inside (${p.bunkerTurns})` : p.bunkerBuilt ? 'built' : `${p.bunkerProgress}/${bunkerBuildTurns(p)}`));
 
     const actions = this.el('div', 'ad-actions');
     actions.append(
