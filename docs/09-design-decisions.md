@@ -117,3 +117,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** `world.js` generates a `LOCATIONS` entry per road segment (`road_<a>_<b>`, `isRoad: true`, `ends`, `miles`) with shared `ROAD_EVENTS` and one "Abandoned Cars" spot. `routeFrom` adds two half-length edges from a road to its ends, so routes and distances work from the middle of a road. `routeTo` now also returns the node `path`, so the game knows which road segment you were on when you found the vehicle. `TOWN` lists only real places, for the panel and for travel.
 **Why this way:** Making roads normal locations reused all the existing code (events, spots, searching, hiding, camping danger, death screen) instead of adding a separate "on the road" mode with its own rules. Finding a vehicle no longer stops a car trip, because a car is already the fastest option.
 **What was ruled out:** Letting players type "go to Route 9" (road names repeat across segments, so it would be ambiguous).
+
+### Zombies Reach the Roads
+
+**What was asked:** Roads should not be a safe place to stay.
+**What was built:** `campDanger` has a separate rule for roads: 5 on the first turn, then 30 + 20 per extra turn. This uses the same consecutive-turns counter (`p.stay`) as town camping.
+**Why this way:** Reusing the camping counter means hiding behind the abandoned cars or entering them still counts as staying on the road. The first turn stays only slightly dangerous so finding a vehicle is still worth it. You just have to move on next turn.
+**What was ruled out:** Forcing players off the road automatically (taking away their choice felt worse than a clear warning plus real danger).

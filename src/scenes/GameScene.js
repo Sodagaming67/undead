@@ -61,6 +61,7 @@ class GameScene extends Phaser.Scene {
   }
 
   campDanger(p) {
+    if (LOCATIONS[p.at].isRoad) return p.stay >= 1 ? 30 + (p.stay - 1) * 20 : 5;
     return Math.max(0, p.stay - 1) * 6;
   }
 
@@ -70,7 +71,8 @@ class GameScene extends Phaser.Scene {
     const lines = loc.isRoad
       ? [`🛣 ON ${loc.name.toUpperCase()}`, `     between ${LOCATIONS[loc.ends[0]].name} and ${LOCATIONS[loc.ends[1]].name}`]
       : [`📍 ${loc.name.toUpperCase()}`, p.spot ? `     inside: ${loc.spots[p.spot].name}` : '     outside, on the street'];
-    if (p.stay >= 2) lines.push(`     ⚠ zombies gathering (here ${p.stay + 1} turns in a row)`);
+    if (loc.isRoad) lines.push(p.stay >= 1 ? '     ⚠⚠ ZOMBIES ON THE ROAD: EXTREME DANGER, LEAVE NOW!' : '     ⚠ zombies coming: leave the road next turn!');
+    else if (p.stay >= 2) lines.push(`     ⚠ zombies gathering (here ${p.stay + 1} turns in a row)`);
     lines.push('', loc.isRoad ? 'ON THIS ROAD  (🔎 = stuff to find):' : 'STORES & ROOMS HERE  (🔎 = stuff to find):');
     for (const k in loc.spots) {
       lines.push(`  ${k === p.spot ? '▶' : '•'} ${loc.spots[k].name}${this.itemsLeft(p, p.at, k) > 0 ? '  🔎' : ''}`);
@@ -125,7 +127,9 @@ class GameScene extends Phaser.Scene {
     if (p.spot && p.spotFresh) parts.push(`You are inside ${spotLabel(loc.spots[p.spot].name)}. ${loc.spots[p.spot].desc}`);
     p.justArrived = false;
     p.spotFresh = false;
-    if (p.stay >= 2) parts.push(`⚠ More and more zombies are gathering around ${loc.name}. The longer ${p.name} stays here, the more dangerous it gets.`);
+    if (loc.isRoad && p.stay >= 1) parts.push(`⚠⚠ THE ZOMBIES HAVE REACHED ${loc.name.toUpperCase()}! They are pouring onto the road from both directions. Staying out here is EXTREMELY dangerous. Get off the road now!`);
+    else if (loc.isRoad) parts.push(`⚠ Zombies from both sides are already heading for ${loc.name}. ${p.name} can stay out here for this turn, but if ${p.name} is still on the road next turn, it will be EXTREMELY dangerous.`);
+    else if (p.stay >= 2) parts.push(`⚠ More and more zombies are gathering around ${loc.name}. The longer ${p.name} stays here, the more dangerous it gets.`);
     parts.push(this.event.text);
 
     const survivor = survivorHere(p);

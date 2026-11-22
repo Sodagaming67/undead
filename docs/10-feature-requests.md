@@ -97,3 +97,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** Every road segment (13) is now a place you can be. Each has its own zombie events, an intro, and "Abandoned Cars" you can search or hide behind, with a little loot. Finding a vehicle while traveling (on foot, bike, skateboard or motorcycle) stops you on that road. Finding one with "search the street" takes you out onto a nearby road. From a road, distances and risks to every town place are measured from the middle of the road. The opening story now only shows once per player.
 **Files changed:** `src/world.js`, `src/stories.js`, `src/scenes/GameScene.js`
 **Design note:** → [Session 1 — Roads as Places](09-design-decisions.md)
+
+### #9 — Zombies Reach the Roads
+
+**Asked:** "Make sure that zombies can get to the roads so you can't stay on the roads for that long. Also, make the roads extremely dangerous if you stay there for more than one turn."
+**Status:** ✓ Done
+**What was built:** On your first turn on a road there is a little extra danger and a warning that zombies are coming. If you are still on the same road the next turn, the zombies reach it: +30 hurt and +30 death danger, and +20 more for every turn after that. The story and side panel both warn you ("⚠⚠ ZOMBIES ON THE ROAD: EXTREME DANGER, LEAVE NOW!"). In testing, 46% of players who stayed died on their second turn there, and almost none lasted past turn 5.
+**Files changed:** `src/scenes/GameScene.js`
+**Design note:** → [Session 1 — Zombies Reach the Roads](09-design-decisions.md)
