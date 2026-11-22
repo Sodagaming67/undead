@@ -71,7 +71,7 @@ class GameScene extends Phaser.Scene {
   }
 
   drawStatus() {
-    const list = this.players.map(p => p.alive ? `${p.name} ${'❤'.repeat(p.hearts)}` : `${p.name} 💀`).join('     ');
+    const list = this.players.map(p => !p.alive ? `${p.name} 💀` : p.sitOut ? `${p.name} (watching)` : `${p.name} ${'❤'.repeat(p.hearts)}`).join('     ');
     this.statusText.setText(`Round ${this.round}     ${list}`);
   }
 
@@ -290,7 +290,7 @@ class GameScene extends Phaser.Scene {
       case 'kill':
         t.alive = false; t.hearts = 0; t.diedRound = this.round; t.death = 'struck down by a mysterious force';
         if (t === this.current) this.nextTurn();
-        else if (this.players.length > 1 && this.players.filter(o => o.alive).length <= 1) this.gameOver(this.players.find(o => o.alive));
+        else this.checkGameEnd();
         return `💀 ${t.name} was struck down by a mysterious force`;
       case 'revive':
         t.alive = true; t.hearts = 3; t.heartbroken = false; t.death = '';
@@ -316,6 +316,20 @@ class GameScene extends Phaser.Scene {
         if (!t.met.includes(arg)) t.met.push(arg);
         return `${SURVIVORS[arg].name} joined ${t.name}'s team`;
       case 'skip': this.nextTurn(); return `Skipped ${t.name}'s turn`;
+      case 'nextUp':
+        this.nextUp = this.nextUp === t ? null : t;
+        return this.nextUp ? `${t.name} will go next` : 'Back to the normal turn order';
+      case 'playNow':
+        this.turn = this.players.indexOf(t);
+        if (this.nextUp === t) this.nextUp = null;
+        this.startTurn();
+        return `It's ${t.name}'s turn now`;
+      case 'sitOut':
+        t.sitOut = !t.sitOut;
+        if (this.nextUp === t) this.nextUp = null;
+        if (t.sitOut && t === this.current) this.nextTurn();
+        else if (!t.sitOut) this.checkGameEnd();
+        return t.sitOut ? `${t.name} is sitting out and won't get turns` : `${t.name} is back in the game`;
       case 'round': this.round = Math.max(1, arg); return `Now on round ${this.round}`;
       case 'win': this.gameOver(t); return '';
       case 'zombies':
@@ -613,17 +627,32 @@ class GameScene extends Phaser.Scene {
     return text;
   }
 
-  nextTurn() {
-    const alive = this.players.filter(p => p.alive);
-    if (alive.length === 0 || (this.players.length > 1 && alive.length === 1)) return this.gameOver(alive[0]);
+  canPlay(p) { return p.alive && !p.sitOut; }
 
+  checkGameEnd() {
+    const playing = this.players.filter(p => !p.sitOut);
+    const alive = playing.filter(p => p.alive);
+    if (alive.length > 1 || (playing.length === 1 && alive.length === 1)) return false;
+    this.gameOver(alive[0]);
+    return true;
+  }
+
+  nextTurn() {
+    if (this.checkGameEnd()) return;
+    const chosen = this.nextUp && this.canPlay(this.nextUp) ? this.players.indexOf(this.nextUp) : -1;
+    this.nextUp = null;
+    if (chosen >= 0) {
+      if (chosen <= this.turn) this.round++;
+      this.turn = chosen;
+      return this.startTurn();
+    }
     do {
       this.turn++;
       if (this.turn >= this.players.length) {
         this.turn = 0;
         this.round++;
       }
-    } while (!this.players[this.turn].alive);
+    } while (!this.canPlay(this.players[this.turn]));
     this.startTurn();
   }
 
@@ -634,7 +663,7 @@ class GameScene extends Phaser.Scene {
 
   ranking(winner) {
     return this.players.slice().sort((a, b) =>
-      (b === winner) - (a === winner) || (b.alive - a.alive) || (b.diedRound - a.diedRound) || (b.turns - a.turns) || (this.score(b, winner) - this.score(a, winner)));
+      (b === winner) - (a === winner) || (!!a.sitOut - !!b.sitOut) || (b.alive - a.alive) || (b.diedRound - a.diedRound) || (b.turns - a.turns) || (this.score(b, winner) - this.score(a, winner)));
   }
 
   gameOver(winner) {
@@ -645,14 +674,14 @@ class GameScene extends Phaser.Scene {
       const p = this.players[0];
       this.headerText.setText(`${p.name} survived ${p.turns - 1} turns!`).setColor('#ffcc33');
     } else {
-      this.headerText.setText(`${winner.name} is the last survivor!`).setColor('#55ff55');
+      this.headerText.setText(winner ? `${winner.name} is the last survivor!` : 'Nobody survived!').setColor(winner ? '#55ff55' : '#ff5555');
     }
 
     const ranked = this.ranking(winner);
     const pad = (s, n) => String(s).slice(0, n).padEnd(n);
     const lines = [pad('#', 3) + pad('NAME', 12) + pad('TURNS', 7) + pad('RESULT', 14) + pad('ITEMS', 7) + pad('FRIENDS', 9) + pad('MILES', 7) + 'SCORE'];
     ranked.forEach((p, i) => {
-      lines.push(pad(i + 1, 3) + pad(p.name, 12) + pad(p.turns, 7) + pad(p.alive ? 'SURVIVED' : `died rnd ${p.diedRound}`, 14) +
+      lines.push(pad(i + 1, 3) + pad(p.name, 12) + pad(p.turns, 7) + pad(p.sitOut && p.alive ? 'SAT OUT' : p.alive ? 'SURVIVED' : `died rnd ${p.diedRound}`, 14) +
         pad(p.stats.itemsFound, 7) + pad(p.stats.recruited, 9) + pad(p.stats.miles, 7) + this.score(p, winner));
     });
     lines.push('');
@@ -678,7 +707,7 @@ class GameScene extends Phaser.Scene {
   statRows(ranked, winner) {
     const date = new Date().toLocaleString();
     return ranked.map((p, i) => [
-      date, this.players.length, i + 1, p.name, p.alive ? 'Survived' : p.heartbroken ? 'Died of heartbreak' : 'Died', p.alive ? '' : p.diedRound, p.turns, p.stats.freeActions,
+      date, this.players.length, i + 1, p.name, p.sitOut && p.alive ? 'Sat out' : p.alive ? 'Survived' : p.heartbroken ? 'Died of heartbreak' : 'Died', p.alive ? '' : p.diedRound, p.turns, p.stats.freeActions,
       p.alive ? p.hearts : 0, p.stats.visited.length, p.stats.miles, p.stats.itemsFound, p.stats.vehiclesFound, p.stats.recruited,
       p.stats.friendsLost, p.stats.fightsWon, p.stats.timesHurt, p.alive ? '' : p.death, this.score(p, winner)
     ]);

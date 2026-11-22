@@ -159,3 +159,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** `GameScene.zombies` holds a count per location (`ZOMBIE_START`, roads use `ROAD_ZOMBIES`). `zombieDanger(k)` turns the count compared with normal into extra danger (+20 for each "extra normal", capped at +60) or extra luck (down to −40). It checks the destination when traveling and the current place otherwise. Zero zombies forces a good result for non-travel moves. `zombieLine()` adds a quiet/crowded/overrun sentence to the story when the page is drawn. The minimap is an SVG drawn in `AdminPanel.mapPanel()` with hand-placed positions (`MAP_POS`, `MAP_LABEL`) laid out to match the road network.
 **Why this way:** At normal counts the danger is exactly 0, so the game plays the same as before unless the admin changes something. Drawing the map with SVG inside the HTML panel keeps it sharp, clickable, and in the same style as the rest of the admin screen.
 **What was ruled out:** Real moving zombie characters on the map (the game has no zombie positions, only per-place danger). Working out map positions from road lengths automatically (it gave messy, overlapping layouts).
+
+### Turn Order Control
+
+**What was asked:** Let the admin choose who goes next, so the admin doesn't have to play.
+**What was built:** `nextUp` (a chosen next player, used once by `nextTurn`), `p.sitOut`, `canPlay(p)` (alive and not sitting out), and `checkGameEnd()`, which only counts players who are not sitting out. Choosing a player whose spot in the list is at or before the current one counts as a new round, so round danger still goes up.
+**Why this way:** "Sit out" covers "so they don't have to play" directly: the admin can add themselves to the game (to keep an eye on things) and never take a turn. "Go next" and "Play now" give full control without changing the order of the player list.
+**What was ruled out:** A separate admin-only spot outside the player list (it would need a new setup screen). Dragging players to reorder them (more complicated, and "Go next" does the same job one turn at a time).

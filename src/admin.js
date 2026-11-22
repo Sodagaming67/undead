@@ -46,6 +46,7 @@ const ADMIN_CSS = `
 .ad-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .ad-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .ad-form { display: flex; gap: 6px; }
+.ad-turn-label { align-self: center; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-right: 4px; }
 .ad-form select { flex: 1; min-width: 0; height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; }
 .ad-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid transparent; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s; }
 .ad-btn:active { transform: translateY(1px); }
@@ -253,6 +254,8 @@ class AdminPanel {
     const pills = this.el('div', 'ad-pills');
     if (p === s.current && p.alive) pills.append(this.pill('Playing now', 'accent'));
     pills.append(p.alive ? this.pill('Alive') : this.pill('Dead', 'danger'));
+    if (s.nextUp === p) pills.append(this.pill('Up next', 'accent'));
+    if (p.sitOut) pills.append(this.pill('Sitting out', 'violet'));
     if (p.god) pills.append(this.pill('God mode', 'warn'));
     if (p.curse) pills.append(this.pill('Cursed', 'violet'));
     head.append(name, pills);
@@ -281,6 +284,17 @@ class AdminPanel {
         : this.button('Revive', 'primary', () => this.act(() => s.adminDo('revive', p)))
     );
 
+    const isCurrent = p === s.current && p.alive;
+    const othersCanPlay = s.players.some(o => o !== p && s.canPlay(o));
+    const turns = this.el('div', 'ad-actions');
+    turns.style.marginTop = '6px';
+    turns.append(
+      this.el('span', 'ad-turn-label', 'Turns:'),
+      this.button(s.nextUp === p ? 'Going next ✓' : 'Go next', s.nextUp === p ? 'on' : 'ghost', () => this.act(() => s.adminDo('nextUp', p)), !s.canPlay(p) || isCurrent),
+      this.button('Play now', 'ghost', () => this.act(() => s.adminDo('playNow', p)), !s.canPlay(p) || isCurrent),
+      this.button(p.sitOut ? 'Back in the game' : 'Sit out', p.sitOut ? 'secondary' : 'ghost', () => this.act(() => s.adminDo('sitOut', p)), !p.alive || (!p.sitOut && !othersCanPlay))
+    );
+
     const forms = this.el('div', 'ad-forms');
     const form = (label, options, cmd) => {
       const row = this.el('div', 'ad-form');
@@ -297,7 +311,7 @@ class AdminPanel {
       form('Recruit', Object.keys(SURVIVORS).filter(k => !p.team.includes(k)).map(k => [k, SURVIVORS[k].name]), 'recruit')
     );
 
-    card.append(head, meta, actions, forms);
+    card.append(head, meta, actions, turns, forms);
     return card;
   }
 
@@ -469,7 +483,20 @@ class AdminPanel {
       this.button('Heal everyone', 'secondary wide', () => this.act(() => s.adminDo('healAll')))
     );
     const note = this.el('p', 'ad-hint', 'Higher rounds make the zombies more dangerous for everyone.');
-    game.append(gameHead, stepper, stack, note);
+    const order = this.el('div', 'ad-zbox');
+    order.style.marginTop = '14px';
+    const watching = s.players.filter(p => p.sitOut && p.alive).map(p => p.name);
+    order.append(
+      this.el('h3', '', 'Turn order'),
+      this.el('div', 'ad-zname', s.nextUp ? `Up next: ${s.nextUp.name}` : 'Up next: normal order'),
+      this.el('p', 'ad-here', watching.length ? `Sitting out: ${watching.join(', ')}` : 'Use "Go next", "Play now" and "Sit out" on each player.')
+    );
+    if (s.nextUp) {
+      const clear = this.button('Use normal order', 'ghost wide', () => this.act(() => s.adminDo('nextUp', s.nextUp)));
+      clear.style.marginTop = '8px';
+      order.append(clear);
+    }
+    game.append(gameHead, stepper, stack, note, order);
 
     const owner = this.el('section', 'ad-panel ad-owner');
     const ownerHead = this.el('div', 'ad-panel-head');
