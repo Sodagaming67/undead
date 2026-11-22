@@ -222,3 +222,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** `BOSSES.fang` replaces `icecream`. In `parseAction`, the cleaned-up text changes "zombie dog" and similar phrases into "fang" (now one of the `ZOMBIE_WORDS`) before survivor and teammate matching.
 **Why this way:** This fixes the "dog" clash with Biscuit at the source, so every later check (recruiting, team orders, missing-survivor hints) sees the boss and the friendly dog as different things without any special cases.
 **What was ruled out:** Removing "dog" from Biscuit's aliases (players naturally call Biscuit "the dog").
+
+### Overrun Areas and Vehicle Fix
+
+**What was asked:** A fully overrun area each round with a warning before entering, and a fix for the vehicle teleport glitch.
+**What was built:** `overrunAt` and `placeOverrun()` (called from `init` and `newRound`). `zombieDanger()` returns `OVERRUN_DANGER` (45) for the overrun place unless the admin set its zombies to 0, so it plugs into the existing travel/action danger code. A warn-once check in `resolve` (`p.overrunOk`, keyed by round and place) stops the first travel attempt with a free warning. Vehicle fix: the pull-over road is now `roadKey(path[i], path[i+1])`, where i skips the road you start on, and finding a vehicle only happens when such a next road exists. The street-search code no longer calls `pullOver`.
+**Why this way:** Reusing zombie danger keeps overrun consistent with the admin's zombie controls. Warning once per round and place means players are never trapped by the warning but can't walk in by accident. The glitch came from `pullOver(p, p.at)` when traveling from a road: the "new" road was the current one, so the player didn't move and their stay counter went up.
+**What was ruled out:** Blocking travel into the overrun place completely (players may want the escape item there). Making the overrun place's zombie count huge (that would change the admin's zombie numbers).

@@ -414,6 +414,10 @@ class AdminPanel {
       this.svg('circle', { cx: x, cy: y, r: 23, fill: color, 'fill-opacity': 0.22 + Math.min(0.5, n / 200), stroke: color, 'stroke-width': 2, class: 'node' }, g);
       this.svgText(g, x, y - 2, '🧟', { 'font-size': 12 });
       this.svgText(g, x, y + 12, String(n), { 'font-size': 12, 'font-weight': 700, fill: '#ffffff' });
+      if (k === s.overrunAt) {
+        this.svg('circle', { cx: x - 22, cy: y - 18, r: 10, fill: '#f03e3e', stroke: '#0b0f14', 'stroke-width': 1.5 }, g);
+        this.svgText(g, x - 22, y - 14, '☠', { 'font-size': 12, fill: '#ffffff' });
+      }
       const item = s.escapeItemAt(k);
       if (item) {
         this.svg('circle', { cx: x + 22, cy: y - 18, r: 10, fill: '#0b0f14', stroke: '#66ffcc', 'stroke-width': 1.5 }, g);
@@ -527,6 +531,12 @@ class AdminPanel {
       this.button(`Skip ${s.current.name}'s turn`, 'ghost wide', () => this.act(() => s.adminDo('skip', s.current))),
       this.button('Heal everyone', 'secondary wide', () => this.act(() => s.adminDo('healAll')))
     );
+    const overrun = this.el('div', 'ad-form');
+    overrun.style.marginTop = '10px';
+    const overSel = this.el('select');
+    TOWN.forEach(k => { const o = new Option('☠ ' + LOCATIONS[k].name, k); o.selected = k === s.overrunAt; overSel.append(o); });
+    overrun.append(overSel, this.button('Overrun', 'danger', () => this.act(() => s.adminDo('overrun', null, overSel.value))));
+    stack.append(this.el('p', 'ad-here', `☠ Overrun this round: ${LOCATIONS[s.overrunAt].name} (a new one every round)`), overrun);
     const note = this.el('p', 'ad-hint', 'Higher rounds make the zombies more dangerous for everyone.');
     const order = this.el('div', 'ad-zbox');
     order.style.marginTop = '14px';

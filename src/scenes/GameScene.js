@@ -8,6 +8,7 @@ const ADMIN_CODE = 'zombie king 67';
 const ZOMBIE_START = { house: 6, school: 25, park: 15, gas: 10, mall: 40, sports: 20, police: 15, hospital: 35, woods: 8, tower: 5 };
 const ROAD_ZOMBIES = 12;
 const FOREST_ZOMBIES = 50;
+const OVERRUN_DANGER = 45;
 const normalZombies = k => ZOMBIE_START[k] ?? (LOCATIONS[k].isForest ? FOREST_ZOMBIES : ROAD_ZOMBIES);
 
 class GameScene extends Phaser.Scene {
@@ -38,17 +39,25 @@ class GameScene extends Phaser.Scene {
     this.placeEscapeItems();
     this.zombies = {};
     for (const k in LOCATIONS) this.zombies[k] = normalZombies(k);
+    this.overrunAt = null;
+    this.placeOverrun();
+  }
+
+  placeOverrun() {
+    this.overrunAt = Phaser.Utils.Array.GetRandom(TOWN.filter(k => k !== this.overrunAt && !(this.round === 1 && k === 'house')));
   }
 
   zombieDanger(k) {
     const n = this.zombies[k];
     if (n === 0) return -200;
+    if (k === this.overrunAt) return OVERRUN_DANGER;
     return Phaser.Math.Clamp(Math.round((n / normalZombies(k) - 1) * 20), -40, 60);
   }
 
   zombieLine(k) {
     const n = this.zombies[k], r = n / normalZombies(k);
     if (n === 0) return 'There is not a single zombie in sight. It is eerily quiet.';
+    if (k === this.overrunAt) return `☠☠ ${LOCATIONS[k].name.toUpperCase()} IS OVERRUN THIS ROUND! Zombies are pouring out of every door and window. Every move here is EXTREMELY dangerous. Get out as fast as you can!`;
     if (r < 0.5) return 'There are only a few zombies around here right now.';
     if (r >= 4) return `⚠⚠ This place is OVERRUN. There must be ${n} zombies here, way more than anywhere else in town!`;
     if (r >= 2) return `⚠ There are way more zombies here than usual, about ${n} of them.`;
@@ -119,6 +128,7 @@ class GameScene extends Phaser.Scene {
     }
     const boss = this.bossHere(p);
     if (boss) lines.push(`     🧟 ${BOSSES[boss].name} is here! ${this.hpBar(p, boss)}`);
+    if (p.at === this.overrunAt) lines.push('     ☠☠ OVERRUN THIS ROUND: EXTREME DANGER, LEAVE!');
     if (p.at === 'house') {
       const bunker = p.inBunker ? `INSIDE ${this.bunkerBar(p)}` : p.bunkerBuilt ? `ready ${this.bunkerBar(p)}` : `${p.bunkerProgress}/${bunkerBuildTurns(p)} built`;
       lines.push(`     🪤 traps: ${p.traps.length ? p.traps.map(t => `${TRAPS[t.kind].name} ${t.chance}%`).join(', ') : 'none'}`, `     🛡 bunker: ${bunker}`);
@@ -138,7 +148,8 @@ class GameScene extends Phaser.Scene {
     TOWN.filter(k => k !== p.at).sort((a, b) => dist[a] - dist[b]).forEach(k => {
       const miles = Math.round(dist[k] * 10) / 10;
       const here = Object.keys(ESCAPE_ITEMS).filter(i => this.escapeAt[i] === k && !p.escapeItems.includes(i)).map(i => ' ' + ESCAPE_ITEMS[i].icon).join('');
-      lines.push(`  ${LOCATIONS[k].name}${here}: ${miles} mi, ${riskLabel(miles * factor)}${k === p.cameFrom ? ' + zombies on your trail' : ''}`);
+      const risk = k === this.overrunAt ? '☠ OVERRUN, EXTREME risk' : riskLabel(miles * factor);
+      lines.push(`  ${LOCATIONS[k].name}${here}: ${miles} mi, ${risk}${k === p.cameFrom ? ' + zombies on your trail' : ''}`);
     });
 
     lines.push('', 'VEHICLES:');
@@ -230,6 +241,10 @@ class GameScene extends Phaser.Scene {
     this.recapText.setText(p.recap ? `Last time: ${p.recap}` : `Pass the keyboard to ${p.name}!`);
     this.storyText.setY(this.recapText.y + this.recapText.height + 10);
     const extra = [this.zombieLine(p.at)];
+    if (p.overrunSeen !== this.round && p.at !== this.overrunAt) {
+      p.overrunSeen = this.round;
+      extra.unshift(`☠ ROUND ${this.round}: ${LOCATIONS[this.overrunAt].name} has been OVERRUN by zombies! Stay away from it this round.`);
+    }
     const boss = !p.inBunker && this.bossHere(p);
     if (boss) {
       const b = BOSSES[boss];
@@ -361,6 +376,9 @@ class GameScene extends Phaser.Scene {
         return `Gave ${t.name} ${arg === 'all' ? 'all 3 escape items' : 'the ' + ESCAPE_ITEMS[arg].name}`;
       case 'takeEscape': t.escapeItems = []; return `Took away ${t.name}'s escape items`;
       case 'moveItems': this.placeEscapeItems(); return 'Escape items moved to new places';
+      case 'overrun':
+        this.overrunAt = arg;
+        return `☠ ${LOCATIONS[arg].name} is now the overrun area`;
       case 'moveEscapes': {
         const forests = Phaser.Utils.Array.Shuffle(Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest));
         this.escapes = { heli: forests[0], subway: forests[1] };
@@ -448,6 +466,13 @@ class GameScene extends Phaser.Scene {
       return this.drawInput();
     }
     if (type === 'order') return this.giveOrder(parsed);
+    const warnKey = `${this.round}:${parsed.dest}`;
+    if (type === 'travel' && parsed.dest === this.overrunAt && this.zombies[parsed.dest] > 0 && p.overrunOk !== warnKey) {
+      p.overrunOk = warnKey;
+      this.hint = `☠☠ WARNING! ${LOCATIONS[parsed.dest].name} is OVERRUN with zombies this round! Going there now is EXTREMELY dangerous. If ${p.name} really wants to go, type it again and press ENTER.`;
+      this.typed = '';
+      return this.drawInput();
+    }
 
     const style = type === 'travel' ? (parsed.vehicle === 'car' ? 'drive' : 'run') : type === 'enter' && parsed.crash ? 'drive' : type;
     const keys = type === 'travel' ? ['travel', style] : type === 'enter' ? [] : [type];
@@ -485,7 +510,7 @@ class GameScene extends Phaser.Scene {
     const baseOdds = type === 'enter' ? (parsed.crash ? ACTIONS.drive.odds : [65, 25, 10]) : ACTIONS[style].odds;
     const zombieDanger = this.zombieDanger(type === 'travel' ? parsed.dest : p.at);
     if (zombieDanger < 0) boost -= zombieDanger;
-    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0) + Math.max(0, zombieDanger) + (parsed.forest && LOCATIONS[parsed.dest].isForest ? 25 : 0) + (bunkerBreaks ? 40 : 0));
+    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0) + Math.max(0, zombieDanger) + (parsed.forest && LOCATIONS[parsed.dest].isForest ? 25 : 0) + (bunkerBreaks ? 40 : 0) + (type === 'travel' && startAt === this.overrunAt && this.zombies[startAt] > 0 ? 20 : 0));
     if (p.god || (type !== 'travel' && this.zombies[p.at] === 0)) result = 'good';
     else if (p.curse && !free) { result = p.hearts > 1 ? 'hurt' : 'dead'; p.curse = false; }
     if (['bunkerEnter', 'bunkerLeave'].includes(parsed.survival) || (parsed.survival === 'bunkerWait' && !bunkerBreaks)) result = 'good';
@@ -513,12 +538,14 @@ class GameScene extends Phaser.Scene {
       else text = pick(result === 'good' ? (parsed.vehicle ? TRAVEL_TEXT[parsed.vehicle] : TRAVEL_TEXT.good) : TRAVEL_TEXT[result]);
       if (parsed.crash && result === 'hurt') text += ` ${p.name} got banged up in the crash.`;
       if (backtrack) text = `The zombies that followed ${p.name} here are still on the trail back to ${destLoc.name}. ` + text;
-      const found = result === 'good' && !parsed.crash && !parsed.forest && !loc.isForest && parsed.vehicle !== 'car' && Math.random() < 0.2 ?this.giveVehicle(p, Object.keys(VEHICLES)) : null;
+      const fromRoad = loc.isRoad ? 1 : 0;
+      const nextRoad = route && route.path.length > fromRoad + 1 ? roadKey(route.path[fromRoad], route.path[fromRoad + 1]) : null;
+      const found = result === 'good' && nextRoad && !parsed.crash && !parsed.forest && !loc.isForest && parsed.vehicle !== 'car' && Math.random() < 0.2 ? this.giveVehicle(p, Object.keys(VEHICLES)) : null;
       if (found) {
-        const road = LOCATIONS[p.at].isRoad ? p.at : roadKey(route.path[0], route.path[1]);
+        const road = nextRoad;
         const r = LOCATIONS[road];
-        text = `${p.name} sets off toward ${destLoc.name}. Partway down ${r.name}, ${p.name} spots ${VEHICLES[found].found}. ${p.name} takes it and pulls over to check it out! (You now have a ${VEHICLES[found].name.toLowerCase()}: ${VEHICLES[found].how}.) `;
-        p.stats.miles = Math.round((p.stats.miles + r.miles / 2) * 10) / 10;
+        text = `${p.name} sets off toward ${destLoc.name}. ${fromRoad ? `${p.name} makes it past ${LOCATIONS[route.path[1]].name}, and partway` : 'Partway'} down ${r.name}, ${p.name} spots ${VEHICLES[found].found}. ${p.name} takes it and pulls over to check it out! (You now have a ${VEHICLES[found].name.toLowerCase()}: ${VEHICLES[found].how}.) `;
+        p.stats.miles = Math.round((p.stats.miles + r.miles / 2 + (fromRoad ? loc.miles / 2 : 0)) * 10) / 10;
         text += this.pullOver(p, road);
       } else if (result !== 'dead') {
         p.cameFrom = p.at;
@@ -575,11 +602,7 @@ class GameScene extends Phaser.Scene {
         text = v
           ? `${p.name} checks the cars and driveways up and down the street and finds ${VEHICLES[v].found}! (You now have a ${VEHICLES[v].name.toLowerCase()}: ${VEHICLES[v].how}.)`
           : `${p.name} already has every kind of vehicle there is!`;
-        if (v && !LOCATIONS[p.at].isRoad) {
-          const road = roadKey(p.at, Phaser.Utils.Array.GetRandom(LOCATIONS[p.at].neighbors));
-          text += ` ${p.name} takes it out onto ${LOCATIONS[road].name} to try it out. ` + this.pullOver(p, road);
-          this.prepareStory(p);
-        }
+        if (v) text += ` ${p.name} parks it right outside ${loc.name}, ready to go.`;
       } else {
         text = result === 'good' ? fill(STREET_SEARCH_FAIL) : pick(ACTIONS.supplies[result]);
       }
@@ -853,6 +876,7 @@ class GameScene extends Phaser.Scene {
   newRound() {
     this.round++;
     this.placeEscapeItems();
+    this.placeOverrun();
   }
 
   escapeHere(p) { return Object.keys(ESCAPES).find(e => this.escapes[e] === p.at) || null; }
