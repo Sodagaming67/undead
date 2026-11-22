@@ -129,3 +129,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** On any turn, typing `zombie king 67` and pressing ENTER turns admin mode on (type it again or `/off` to turn it off). It doesn't use up the turn. While it's on, the typing cursor is a block (▮) instead of _, so only the admin can tell. Admin commands start with `/` and can name a player (no name = whoever's turn it is): `/heal`, `/hurt`, `/kill`, `/revive`, `/god` (every move works), `/curse` (next real move goes badly), `/give <item or all>`, `/vehicle <car/motorcycle/bike/skateboard/all>`, `/teleport <place>`, `/recruit <survivor>`, `/skip`, `/round <number>`, `/win`, `/items`, `/places`, `/help`. Commands never use up a turn.
 **Files changed:** `src/scenes/GameScene.js`
 **Design note:** → [Session 1 — Secret Admin Mode](09-design-decisions.md)
+
+### #13 — Admin Control Panel (Chore Pool Style)
+
+**Asked:** "Completely change the Admin screen to look advanced and more like the chore app admin screen."
+**Status:** ✓ Done
+**What was built:** Typing the secret code now opens a full admin control panel on top of the game, styled like Chore Pool's dark mode (same colors, cards, rounded buttons, pills, "Only you can see this" badge and pop-up messages). It has summary boxes for the round, players alive, whose turn it is and god mode. Each player has a card with hearts, location, items, vehicles, team and turns. The card's buttons are Heal, Hurt, God mode, Curse, Make winner and Kill/Revive, and there are dropdowns to Teleport, Give an item, Give a vehicle and Recruit a survivor. A Game panel has a round − / + stepper, Skip turn and Heal everyone. A red "Admin mode" panel has "Turn off admin mode" (which also clears god mode and curses). Esc, Close, or clicking outside hides the panel. The typed `/` commands from #12 were replaced by the panel.
+**Files changed:** `src/admin.js` (new), `src/scenes/GameScene.js`, `index.html`
+**Design note:** → [Session 1 — Admin Control Panel](09-design-decisions.md)

@@ -145,3 +145,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** `ADMIN_CODE` and `adminCommand()` in `GameScene`. `resolve()` checks for admin input first, so the code and `/` commands never reach the word-finder, never use up a turn, and show their reply in the hint line. God mode and curse change the dice result right after `rollOutcome`. Curse only affects a real move and only once.
 **Why this way:** The admin types in the same box as everyone else, so cousins can't tell anything special is happening except for the different cursor. The code is a phrase no one would type by accident. The word "admin" on its own still gets the normal "no cheating" reply.
 **What was ruled out:** A secret key shortcut (the user asked for a typed command). A separate admin screen (everyone would see it on the shared screen).
+
+### Admin Control Panel
+
+**What was asked:** Make the admin screen look advanced, like the Chore Pool admin screen.
+**What was built:** `src/admin.js` has an `AdminPanel` class that builds a regular web page panel (HTML and CSS) over the Phaser canvas. It copies Chore Pool's dark-mode colors and its panel, button and pill styles. Every button calls `GameScene.adminDo(cmd, player, value)`, then `refreshAfterAdmin()` redraws the game. While the panel is open it catches every key first, so typing in it never reaches the game.
+**Why this way:** Real HTML buttons, dropdowns and cards look much more like the chore app than anything drawn with Phaser text, and are much easier to click. It needed a new file because the panel's styles and layout are large and separate from the game rules.
+**What was ruled out:** Keeping the `/` commands as well (two ways to do the same thing). Drawing the panel with Phaser shapes (would not look like the chore app).
