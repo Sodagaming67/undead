@@ -1,4 +1,5 @@
 const MAX_FREE = 2;
+const HEARTBREAK = 3;
 const PLAYER_COLORS = ['#ff6b6b', '#4dabf7', '#69db7c', '#ffd43b', '#da77f2', '#ffa94d', '#3bc9db', '#f783ac'];
 const HIT_CHANCE = { follow: 0.35, protect: 0.7, fight: 0.5, hide: 0 };
 const SAVE_CHANCE = { follow: 0.5, protect: 0.75, fight: 0.5, hide: 0 };
@@ -101,6 +102,9 @@ class GameScene extends Phaser.Scene {
     else lines.push('  no team yet');
 
     const survivor = survivorHere(p);
+    if (p.stats.friendsLost) {
+      lines.push(`  friends lost: ${'💔'.repeat(p.stats.friendsLost)}`);
+    }
     if (survivor) lines.push('', `SURVIVOR HERE: ${SURVIVORS[survivor].name} (talk to them!)`);
     this.panelText.setText(lines.join('\n'));
   }
@@ -448,6 +452,12 @@ class GameScene extends Phaser.Scene {
       }
     }
 
+    if (result !== 'dead' && p.stats.friendsLost >= HEARTBREAK) {
+      result = 'dead';
+      p.heartbroken = true;
+      text += `\n\n💔 That was the third friend ${p.name} has lost. ${p.name} can't stop thinking about all of them, and in that moment of grief ${p.name} doesn't notice the zombies closing in. ${p.name} dies of a broken heart.`;
+    }
+
     if (result === 'dead') {
       p.alive = false;
       p.diedRound = this.round;
@@ -462,7 +472,7 @@ class GameScene extends Phaser.Scene {
       good: ['SAFE!', '#55ff55'],
       hurt: ['HURT!', '#ffcc33'],
       saved: ['SAVED BY A FRIEND!', '#ff9933'],
-      dead: [`${p.name.toUpperCase()} IS DEAD!`, '#ff3333']
+      dead: [p.heartbroken ? `${p.name.toUpperCase()} DIED OF HEARTBREAK 💔` : `${p.name.toUpperCase()} IS DEAD!`, '#ff3333']
     }[result];
 
     const stillGoing = free && result !== 'dead';
@@ -556,7 +566,9 @@ class GameScene extends Phaser.Scene {
     lines.push('');
     ranked.filter(p => !p.alive).forEach(p => {
       const last = p.death.length > 45 ? p.death.slice(0, 45) + '...' : p.death;
-      lines.push(`💀 ${p.name} died at ${LOCATIONS[p.at].name} after "${last}"`);
+      lines.push(p.heartbroken
+        ? `💔 ${p.name} died of heartbreak at ${LOCATIONS[p.at].name} after losing ${HEARTBREAK} friends`
+        : `💀 ${p.name} died at ${LOCATIONS[p.at].name} after "${last}"`);
     });
     lines.push('', 'Turns only count real moves. Small actions like talking or giving orders are not counted.');
 
@@ -574,7 +586,7 @@ class GameScene extends Phaser.Scene {
   statRows(ranked, winner) {
     const date = new Date().toLocaleString();
     return ranked.map((p, i) => [
-      date, this.players.length, i + 1, p.name, p.alive ? 'Survived' : 'Died', p.alive ? '' : p.diedRound, p.turns, p.stats.freeActions,
+      date, this.players.length, i + 1, p.name, p.alive ? 'Survived' : p.heartbroken ? 'Died of heartbreak' : 'Died', p.alive ? '' : p.diedRound, p.turns, p.stats.freeActions,
       p.alive ? p.hearts : 0, p.stats.visited.length, p.stats.miles, p.stats.itemsFound, p.stats.vehiclesFound, p.stats.recruited,
       p.stats.friendsLost, p.stats.fightsWon, p.stats.timesHurt, p.alive ? '' : p.death, this.score(p, winner)
     ]);

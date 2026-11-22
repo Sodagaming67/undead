@@ -124,3 +124,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** `campDanger` has a separate rule for roads: 5 on the first turn, then 30 + 20 per extra turn. This uses the same consecutive-turns counter (`p.stay`) as town camping.
 **Why this way:** Reusing the camping counter means hiding behind the abandoned cars or entering them still counts as staying on the road. The first turn stays only slightly dangerous so finding a vehicle is still worth it. You just have to move on next turn.
 **What was ruled out:** Forcing players off the road automatically (taking away their choice felt worse than a clear warning plus real danger).
+
+### Heartbreak
+
+**What was asked:** Stop players from using friends as shields, with a surprise heartbreak death after losing 3 friends.
+**What was built:** `HEARTBREAK = 3`. After all hit and sacrifice handling in `resolve`, if `p.stats.friendsLost >= 3` the result becomes dead and `p.heartbroken` is set for the header, game over line and CSV.
+**Why this way:** The check runs last, so a friend's sacrifice that would have saved you can still break your heart. The user asked for no warning so it is a funny surprise, so only the 💔 counter is shown. Simulations: recruiting survivors scores well with any orders (follow 66, protect 68, no friends 44), so after this change the shield trick is not what makes recruiting strong.
+**What was ruled out:** A warning at 2 friends lost (removed at the user's request).

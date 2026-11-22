@@ -105,3 +105,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** On your first turn on a road there is a little extra danger and a warning that zombies are coming. If you are still on the same road the next turn, the zombies reach it: +30 hurt and +30 death danger, and +20 more for every turn after that. The story and side panel both warn you ("⚠⚠ ZOMBIES ON THE ROAD: EXTREME DANGER, LEAVE NOW!"). In testing, 46% of players who stayed died on their second turn there, and almost none lasted past turn 5.
 **Files changed:** `src/scenes/GameScene.js`
 **Design note:** → [Session 1 — Zombies Reach the Roads](09-design-decisions.md)
+
+### #10 — Dying of Heartbreak
+
+**Asked:** "Make it so that you can die of heartbreak if three of your friends die, so players can't get all their friends killed to save themselves." Follow-up: "Don't give them a warning so it will be funny if they randomly die of heartbreak. You can keep the hearts if you don't tell them you die if you get too many."
+**Status:** ✓ Done
+**What was built:** When a player's 3rd teammate dies (even while saving them), the player dies of heartbreak. The header says "ANN DIED OF HEARTBREAK 💔", and the game over screen and spreadsheet ("Died of heartbreak") show it too. The side panel shows a 💔 for each friend lost, but on purpose nothing warns that 3 is the limit.
+**Files changed:** `src/scenes/GameScene.js`
+**Design note:** → [Session 1 — Heartbreak](09-design-decisions.md)
