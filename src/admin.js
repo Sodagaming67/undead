@@ -99,7 +99,9 @@ const MAP_LABEL = {
   house: [0, 42, 'middle'], school: [0, -36, 'middle'], park: [0, 42, 'middle'], gas: [0, 42, 'middle'], police: [0, -32, 'middle'],
   sports: [30, 10, 'start'], mall: [0, 46, 'middle'], hospital: [32, 4, 'start'], woods: [-30, 4, 'end'], tower: [0, -32, 'middle']
 };
-const SVG_NS ='http://www.w3.org/2000/svg';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+Object.assign(MAP_POS, { forest_pines: [190, 140], forest_blackthorn: [390, 128], forest_deadfall: [180, 238], forest_hollow: [512, 252] });
+const FOREST_SIZE = { forest_pines: [30, 20], forest_blackthorn: [70, 38], forest_deadfall: [48, 34], forest_hollow: [30, 24] };
 
 function zombieColor(n, normal) {
   const r = n / normal;
@@ -305,7 +307,7 @@ class AdminPanel {
     };
     const byName = (a, b) => a[1].localeCompare(b[1]);
     forms.append(
-      form('Teleport', TOWN.filter(k => k !== p.at).map(k => [k, LOCATIONS[k].name]), 'teleport'),
+      form('Teleport', Object.keys(LOCATIONS).filter(k => k !== p.at && !LOCATIONS[k].isRoad).map(k => [k, (LOCATIONS[k].isForest ? '🌲 ' : '') + LOCATIONS[k].name]), 'teleport'),
       form('Give', [['all', '⭐ Every item'], ...Object.keys(ITEMS).map(k => [k, ITEMS[k].short]).sort(byName)], 'give'),
       form('Give', [['all', '⭐ Every vehicle'], ...Object.keys(VEHICLES).map(k => [k, VEHICLES[k].icon + ' ' + VEHICLES[k].name])], 'vehicle'),
       form('Recruit', Object.keys(SURVIVORS).filter(k => !p.team.includes(k)).map(k => [k, SURVIVORS[k].name]), 'recruit')
@@ -344,9 +346,15 @@ class AdminPanel {
     const select = k => () => { this.selected = k; this.render(); };
     const mid = k => {
       const [a, b] = LOCATIONS[k].ends;
-      return [(MAP_POS[a][0] + MAP_POS[b][0]) / 2, (MAP_POS[a][1] + MAP_POS[b][1]) / 2];
+      const t = k === 'road_house_park' ? 0.2 : 0.5;
+      return [MAP_POS[a][0] + (MAP_POS[b][0] - MAP_POS[a][0]) * t, MAP_POS[a][1] + (MAP_POS[b][1] - MAP_POS[a][1]) * t];
     };
     const roads = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isRoad);
+    const forests = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest);
+    forests.forEach(k => {
+      const [x, y] = MAP_POS[k];
+      this.svg('ellipse', { cx: x, cy: y, rx: FOREST_SIZE[k][0], ry: FOREST_SIZE[k][1], fill: '#1d3b27', 'fill-opacity': 0.55, stroke: '#2f5d3d', 'stroke-dasharray': '3 4' }, map);
+    });
     roads.forEach(k => {
       const [a, b] = LOCATIONS[k].ends;
       const color = zombieColor(s.zombies[k], normalZombies(k));
@@ -363,6 +371,22 @@ class AdminPanel {
       this.svgText(g, x, y + 4, String(s.zombies[k]), { 'font-size': 11, 'font-weight': 700, fill: sel ? '#062b27' : '#e8eaed' });
       const title = this.svg('title', {}, g);
       title.textContent = `${LOCATIONS[k].name}: ${s.zombies[k]} zombies`;
+    });
+    forests.forEach(k => {
+      const [x, y] = MAP_POS[k];
+      const n = s.zombies[k];
+      const sel = k === this.selected;
+      const g = this.svg('g', { class: 'place' }, map);
+      g.addEventListener('click', select(k));
+      this.svg('ellipse', { cx: x, cy: y, rx: FOREST_SIZE[k][0], ry: FOREST_SIZE[k][1], fill: 'transparent', stroke: sel ? '#2bb3a3' : 'none', 'stroke-width': 3 }, g);
+      this.svgText(g, x - 14, y - 4, '🌲', { 'font-size': 14 });
+      this.svgText(g, x + 14, y - 4, '🌲', { 'font-size': 14 });
+      this.svgText(g, x, y - 10, '🌲', { 'font-size': 16 });
+      this.svg('rect', { x: x - 17, y: y + 1, width: 34, height: 16, rx: 8, fill: sel ? '#2bb3a3' : '#0b0f14', stroke: zombieColor(n, normalZombies(k)), 'stroke-width': 1.5 }, g);
+      this.svgText(g, x, y + 13, String(n), { 'font-size': 10.5, 'font-weight': 700, fill: sel ? '#062b27' : '#e8eaed' });
+      this.svgText(g, x, y + (k === 'forest_pines' ? 27 : 30), LOCATIONS[k].name, { 'font-size': 10, 'font-weight': 600, 'font-style': 'italic', fill: '#69db7c', stroke: '#0b0f14', 'stroke-width': 3, 'paint-order': 'stroke' });
+      const title = this.svg('title', {}, g);
+      title.textContent = `${LOCATIONS[k].name} (deadly woods): ${n} zombies`;
     });
     TOWN.forEach(k => {
       const [x, y] = MAP_POS[k];
@@ -381,7 +405,7 @@ class AdminPanel {
     const groups = {};
     s.players.forEach(p => (groups[p.at] = groups[p.at] || []).push(p));
     for (const k in groups) {
-      const [cx, cy] = LOCATIONS[k].isRoad ? mid(k) : MAP_POS[k];
+      const [cx, cy] = LOCATIONS[k].isRoad ? mid(k) : LOCATIONS[k].isForest ? [MAP_POS[k][0], MAP_POS[k][1] + 4] : MAP_POS[k];
       const list = groups[k];
       list.forEach((p, i) => {
         const angle = -Math.PI / 2 + (i - (list.length - 1) / 2) * 0.75;
@@ -398,7 +422,7 @@ class AdminPanel {
     }
 
     const legend = this.el('div', 'ad-legend');
-    [['#2bb3a3', 'No zombies'], ['#69db7c', 'Fewer than normal'], ['#f3b664', 'Normal'], ['#ff922b', 'Lots'], ['#f03e3e', 'Overrun']].forEach(([c, label]) => {
+    [['#2bb3a3', 'No zombies'], ['#69db7c', 'Fewer than normal'], ['#f3b664', 'Normal'], ['#ff922b', 'Lots'], ['#f03e3e', 'Overrun'], ['#2f5d3d', '🌲 Dark woods (deadly)']].forEach(([c, label]) => {
       const span = this.el('span');
       const sw = this.el('i');
       sw.style.background = c;

@@ -7,7 +7,8 @@ const HISTORY_KEY = 'undeadIncHistory';
 const ADMIN_CODE = 'zombie king 67';
 const ZOMBIE_START = { house: 6, school: 25, park: 15, gas: 10, mall: 40, sports: 20, police: 15, hospital: 35, woods: 8, tower: 5 };
 const ROAD_ZOMBIES = 12;
-const normalZombies = k => ZOMBIE_START[k] ?? ROAD_ZOMBIES;
+const FOREST_ZOMBIES = 50;
+const normalZombies = k => ZOMBIE_START[k] ?? (LOCATIONS[k].isForest ? FOREST_ZOMBIES : ROAD_ZOMBIES);
 
 class GameScene extends Phaser.Scene {
   constructor() { super('GameScene'); }
@@ -84,6 +85,7 @@ class GameScene extends Phaser.Scene {
   }
 
   campDanger(p) {
+    if (LOCATIONS[p.at].isForest) return 35 + p.stay * 25;
     if (LOCATIONS[p.at].isRoad) return p.stay >= 1 ? 30 + (p.stay - 1) * 20 : 5;
     return Math.max(0, p.stay - 1) * 6;
   }
@@ -91,12 +93,19 @@ class GameScene extends Phaser.Scene {
   drawPanel() {
     const p = this.current;
     const loc = LOCATIONS[p.at];
-    const lines = loc.isRoad
+    const lines = loc.isForest
+      ? [`🌲 IN ${loc.name.toUpperCase()}`, '     deep in the woods, off the road', '     ⚠⚠ EXTREMELY DANGEROUS: GET OUT FAST!']
+      : loc.isRoad
       ? [`🛣 ON ${loc.name.toUpperCase()}`, `     between ${LOCATIONS[loc.ends[0]].name} and ${LOCATIONS[loc.ends[1]].name}`]
       : [`📍 ${loc.name.toUpperCase()}`, p.spot ? `     inside: ${loc.spots[p.spot].name}` : '     outside, on the street'];
     if (loc.isRoad) lines.push(p.stay >= 1 ? '     ⚠⚠ ZOMBIES ON THE ROAD: EXTREME DANGER, LEAVE NOW!' : '     ⚠ zombies coming: leave the road next turn!');
     else if (p.stay >= 2) lines.push(`     ⚠ zombies gathering (here ${p.stay + 1} turns in a row)`);
-    lines.push('', loc.isRoad ? 'ON THIS ROAD  (🔎 = stuff to find):' : 'STORES & ROOMS HERE  (🔎 = stuff to find):');
+    if (loc.isForest) lines.push(`     ways out: ${loc.roads.map(r => LOCATIONS[r].name).filter((n, i, a) => a.indexOf(n) === i).join(', ')}`);
+    if (loc.isRoad) {
+      const woods = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest && LOCATIONS[k].roads.includes(p.at)).map(k => LOCATIONS[k].name);
+      if (woods.length) lines.push(`     🌲 woods beside the road: ${woods.join(', ')} (⚠ deadly)`);
+    }
+    lines.push('', loc.isForest ? 'IN THESE WOODS  (🔎 = stuff to find):' : loc.isRoad ? 'ON THIS ROAD  (🔎 = stuff to find):' : 'STORES & ROOMS HERE  (🔎 = stuff to find):');
     for (const k in loc.spots) {
       lines.push(`  ${k === p.spot ? '▶' : '•'} ${loc.spots[k].name}${this.itemsLeft(p, p.at, k) > 0 ? '  🔎' : ''}`);
     }
@@ -153,7 +162,10 @@ class GameScene extends Phaser.Scene {
     if (p.spot && p.spotFresh) parts.push(`You are inside ${spotLabel(loc.spots[p.spot].name)}. ${loc.spots[p.spot].desc}`);
     p.justArrived = false;
     p.spotFresh = false;
-    if (loc.isRoad && p.stay >= 1) parts.push(`⚠⚠ THE ZOMBIES HAVE REACHED ${loc.name.toUpperCase()}! They are pouring onto the road from both directions. Staying out here is EXTREMELY dangerous. Get off the road now!`);
+    if (loc.isForest) parts.push(p.stay >= 1
+      ? `⚠⚠ ${p.name} is STILL in ${loc.name}. More and more zombies are closing in through the trees. Every turn in here is worse than the last!`
+      : `⚠⚠ Zombies are everywhere in these woods. Staying in ${loc.name} is EXTREMELY dangerous, and every turn here makes it worse.`);
+    else if (loc.isRoad && p.stay >= 1) parts.push(`⚠⚠ THE ZOMBIES HAVE REACHED ${loc.name.toUpperCase()}! They are pouring onto the road from both directions. Staying out here is EXTREMELY dangerous. Get off the road now!`);
     else if (loc.isRoad) parts.push(`⚠ Zombies from both sides are already heading for ${loc.name}. ${p.name} can stay out here for this turn, but if ${p.name} is still on the road next turn, it will be EXTREMELY dangerous.`);
     else if (p.stay >= 2) parts.push(`⚠ More and more zombies are gathering around ${loc.name}. The longer ${p.name} stays here, the more dangerous it gets.`);
     parts.push(this.event.text);
@@ -399,7 +411,7 @@ class GameScene extends Phaser.Scene {
     if (armor) helpers.push(ITEMS[armor].short.toLowerCase());
 
     const backtrack = type === 'travel' && parsed.dest === p.cameFrom;
-    const route = type === 'travel' ? routeTo(p.at, parsed.dest) : null;
+    const route = parsed.forest ? { miles: 0.2, roads: [], path: [p.at, parsed.dest] } : type === 'travel' ? routeTo(p.at, parsed.dest) : null;
     const miles = route ? route.miles * (parsed.vehicle ? VEHICLES[parsed.vehicle].factor : 1) : 0;
 
     const repeated = !free && !['travel', 'supplies', 'enter'].includes(type) && p.last === type;
@@ -407,7 +419,7 @@ class GameScene extends Phaser.Scene {
     const baseOdds = type === 'enter' ? (parsed.crash ? ACTIONS.drive.odds : [65, 25, 10]) : ACTIONS[style].odds;
     const zombieDanger = this.zombieDanger(type === 'travel' ? parsed.dest : p.at);
     if (zombieDanger < 0) boost -= zombieDanger;
-    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0) + Math.max(0, zombieDanger));
+    let result = rollOutcome(baseOdds, boost, !!armor, this.round, repeated, miles, this.campDanger(p) + (backtrack ? 12 : 0) + Math.max(0, zombieDanger) + (parsed.forest && LOCATIONS[parsed.dest].isForest ? 25 : 0));
     if (p.god || (type !== 'travel' && this.zombies[p.at] === 0)) result = 'good';
     else if (p.curse && !free) { result = p.hearts > 1 ? 'hurt' : 'dead'; p.curse = false; }
 
@@ -422,11 +434,12 @@ class GameScene extends Phaser.Scene {
     let text;
 
     if (type === 'travel') {
-      if (parsed.crash) text = pick(result === 'dead' ? TRAVEL_TEXT.crashDead : TRAVEL_TEXT.crash);
+      if (parsed.forest) text = pick(FOREST_TEXT[LOCATIONS[parsed.dest].isForest ? 'enter' : 'exit'][result]);
+      else if (parsed.crash) text = pick(result === 'dead' ? TRAVEL_TEXT.crashDead : TRAVEL_TEXT.crash);
       else text = pick(result === 'good' ? (parsed.vehicle ? TRAVEL_TEXT[parsed.vehicle] : TRAVEL_TEXT.good) : TRAVEL_TEXT[result]);
       if (parsed.crash && result === 'hurt') text += ` ${p.name} got banged up in the crash.`;
       if (backtrack) text = `The zombies that followed ${p.name} here are still on the trail back to ${destLoc.name}. ` + text;
-      const found = result === 'good' && !parsed.crash && parsed.vehicle !== 'car' && Math.random() < 0.2 ?this.giveVehicle(p, Object.keys(VEHICLES)) : null;
+      const found = result === 'good' && !parsed.crash && !parsed.forest && !loc.isForest && parsed.vehicle !== 'car' && Math.random() < 0.2 ?this.giveVehicle(p, Object.keys(VEHICLES)) : null;
       if (found) {
         const road = LOCATIONS[p.at].isRoad ? p.at : roadKey(route.path[0], route.path[1]);
         const r = LOCATIONS[road];

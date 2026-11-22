@@ -272,6 +272,22 @@ const STREET_SEARCH_FAIL ='{name} checks the cars and driveways along the street
 
 const SACRIFICE_TEXT = 'But {friend} jumps in the way at the last second and pushes {name} to safety! {friend} holds the zombies back while {name} escapes... but {friend} does not make it out. 💔';
 
+const FOREST_TEXT = {
+  enter: {
+    good: ['{name} dives off {place} and crashes into the trees of {dest}. Branches whip past. It is dark in here, and the moaning seems to come from every direction at once...', '{name} leaps over the ditch and disappears into {dest}. The road noise fades behind the trees. Somewhere close, something starts to follow.'],
+    hurt: ['{name} sprints into {dest}, but a zombie hiding in the bushes lunges out and sinks its teeth into {name}\'s arm before {name} tears free and keeps running deeper into the dark.', '{name} crashes into {dest} and trips over a root. Before {name} can get up, a zombie is on top of them. {name} kicks it away, but not before it gets a bite in.'],
+    dead: ['{name} runs into the trees of {dest}... and straight into a crowd of zombies waiting in the dark. There is nowhere left to run.', '{name} makes it ten steps into {dest} before the ground gives way into a pit full of zombies. Nobody ever comes out of these woods.']
+  },
+  exit: {
+    good: ['{name} bursts out of the trees and tumbles onto {dest}, covered in scratches but ALIVE!', '{name} follows the sound of a car alarm and finally stumbles out of the woods onto {dest}. Never going back in there.'],
+    hurt: ['{name} fights through the branches toward {dest}. A zombie claws {name} on the way out, but {name} makes it back to the road.', 'Something grabs {name}\'s leg just before the tree line. {name} kicks free and staggers out onto {dest}, bleeding.'],
+    dead: ['{name} runs and runs, but every direction looks the same. The trees close in, and so do the zombies. {name} never finds the road again.', '{name} can see {dest} through the trees, only a few steps away, when the zombies drag {name} back into the dark.']
+  }
+};
+
+const FOREST_WORDS = ['trees', 'tree line', 'treeline', 'forest', 'thicket', 'bushes', 'the brush'];
+const FOREST_EXIT_WORDS = ['road', 'street', 'highway', 'out of the woods', 'out of the forest', 'out of the trees', 'out of here', 'get out', 'back out', 'way out', 'leave'];
+
 const MOVE_WORDS = ['go', 'went', 'head', 'walk', 'travel', 'move', 'ride', 'rid', 'visit', 'enter', 'return', 'back to', 'over to', 'to the', 'toward', 'towards', 'make my way', 'get to', 'run', 'ran', 'sprint', 'flee', 'escap', 'skate', 'bike', 'hike', 'jog', 'dash', 'race', 'drive', 'driv', 'sneak to', 'crawl to', 'hurry', 'rush', 'leave for', 'set off', 'journey', 'way to', 'cross', 'look for', 'find'];
 
 const ZOMBIE_WORDS = ['zombie', 'monster', 'undead', 'horde', 'walker', 'corpse', 'ghoul', 'dead', 'creature', 'gary', 'henderson', 'lunch lady', 'hot dog', 'goalie', 'mannequin'];
@@ -476,18 +492,32 @@ function parseAction(typed, p) {
 
   let vehicle = vehicleFor(ctx, p);
   if (!vehicle && best === 'drive') vehicle = 'car';
+  if (here.isForest && vehicle) return { hint: `No vehicle can get through these trees! ${p.name} has to get out of the woods on foot first.` };
   const crashing = vehicle === 'car' && CRASH_RE.test(t);
   const moving = countHits(ctx, MOVE_WORDS) > 0 || !!vehicle;
 
   const localSpot = Object.keys(here.spots).find(k => here.spots[k].aliases.some(a => hits(ctx, a))) || null;
   let otherSpot = null;
   for (const k in LOCATIONS) {
-    if (k === p.at || LOCATIONS[k].isRoad) continue;
+    if (k === p.at || LOCATIONS[k].isRoad || LOCATIONS[k].isForest) continue;
     const s = Object.keys(LOCATIONS[k].spots).find(sk => hits(ctx, LOCATIONS[k].spots[sk].aliases[0]));
     if (s) { otherSpot = { loc: k, spot: s }; break; }
   }
   const place = Object.keys(LOCATIONS).find(k => k !== p.at && LOCATIONS[k].aliases.some(a => hits(ctx, a))) || (otherSpot && otherSpot.loc);
   const mentionsHere = here.aliases.some(a => hits(ctx, a));
+
+  const willGo = best !== 'dumb' && (moving || !best || ['run', 'sneak', 'hide'].includes(best));
+  if (here.isRoad && !localSpot && willGo) {
+    const forests = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest && LOCATIONS[k].roads.includes(p.at));
+    const namedForest = forests.find(k => LOCATIONS[k].forestWords.some(w => hits(ctx, w)));
+    const woods = hits(ctx, 'woods') && !hits(ctx, 'whispering') && !here.ends.includes('woods');
+    if (namedForest || (forests.length && (woods || FOREST_WORDS.some(w => hits(ctx, w))) && (!place || place === 'woods'))) {
+      return { type: 'travel', dest: namedForest || Phaser.Utils.Array.GetRandom(forests), forest: true, spot: null, vehicle: null, crash: false };
+    }
+  }
+  if (here.isForest && (!place || (place === 'woods' && !hits(ctx, 'whispering'))) && !localSpot && willGo && (best === 'run' || FOREST_EXIT_WORDS.some(w => hits(ctx, w)))) {
+    return { type: 'travel', dest: Phaser.Utils.Array.GetRandom(here.roads), forest: true, spot: null, vehicle: null, crash: false };
+  }
 
   if (p.spot && !place && !localSpot && LEAVE_RE.test(t) && (!best || ['run', 'sneak'].includes(best))) {
     return { type: 'enter', spot: null };

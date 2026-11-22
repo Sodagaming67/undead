@@ -297,13 +297,40 @@ ROADS.forEach(([a, b, miles, road], i) => {
   };
 });
 
-for (const k in LOCATIONS) LOCATIONS[k].neighbors = LOCATIONS[k].isRoad ? LOCATIONS[k].ends.slice() : [];
+const FOREST_EVENTS = [
+  { text: 'It is so dark under the trees that you can barely see your own hands. All around you, branches crack and something is breathing. Lots of somethings.', bonus: ['hide', 'sneak', 'climb'] },
+  { text: 'A zombie drops out of a tree right in front of you. Then you notice the others, hanging in the branches above, starting to twitch.', bonus: ['run', 'fight', 'sneak'] },
+  { text: 'You step on something soft. It is a zombie lying in the leaves, and it grabs your ankle. The whole forest floor starts to move. They were ALL buried in the leaves.', bonus: ['fight', 'run', 'climb'] },
+  { text: 'Fog rolls between the trees. Pale shapes drift toward you from every direction, and you have completely lost track of which way the road is.', bonus: ['hide', 'climb', 'trick'] }
+];
+
+const FORESTS = {
+  forest_pines: { name: 'Crooked Pines', words: ['crooked pines', 'crooked', 'pines'], roads: [['house', 'school'], ['house', 'park'], ['park', 'school']], loot: ['crossbow'] },
+  forest_blackthorn: { name: 'Blackthorn Forest', words: ['blackthorn'], roads: [['police', 'school'], ['hospital', 'police'], ['hospital', 'mall'], ['mall', 'sports'], ['park', 'sports'], ['park', 'school']], loot: ['katana'] },
+  forest_deadfall: { name: 'Deadfall Thicket', words: ['deadfall'], roads: [['gas', 'house'], ['gas', 'mall'], ['house', 'park'], ['park', 'woods']], loot: ['machete'] },
+  forest_hollow: { name: 'Hollow Timber', words: ['hollow timber', 'timber'], roads: [['hospital', 'mall'], ['hospital', 'tower'], ['tower', 'woods']], loot: ['kevlar_vest'] }
+};
+
+for (const k in FORESTS) {
+  const f = FORESTS[k];
+  LOCATIONS[k] = {
+    isForest: true, name: f.name, aliases: [], forestWords: f.words, roads: f.roads.map(([a, b]) => roadKey(a, b)),
+    intro: `The moment you step off the road, ${f.name} swallows you. The trees grow so close together that the daylight turns green, then gray, then almost black. Nobody goes in here on purpose. ⚠⚠ These woods are EXTREMELY dangerous.`,
+    events: FOREST_EVENTS,
+    spots: {
+      hollow: { name: 'Hollow Tree', aliases: ['hollow tree', 'hollow log', 'tree trunk', 'log'], desc: `A huge dead tree with a hollow trunk big enough to squeeze into. It smells like rot in there.`, items: ['first_aid'], good: ['hide'] },
+      clearing: { name: 'Bone Clearing', aliases: ['clearing', 'bone clearing', 'campfire'], desc: `A small clearing full of old backpacks and dropped gear. Whoever left it here did not leave by choice.`, items: f.loot, good: ['supplies', 'fight'] }
+    }
+  };
+}
+
+for (const k in LOCATIONS) LOCATIONS[k].neighbors = LOCATIONS[k].isRoad ? LOCATIONS[k].ends.slice() : LOCATIONS[k].isForest ? LOCATIONS[k].roads.slice() : [];
 for (const [a, b] of ROADS) {
   LOCATIONS[a].neighbors.push(b);
   LOCATIONS[b].neighbors.push(a);
 }
 
-const TOWN = Object.keys(LOCATIONS).filter(k => !LOCATIONS[k].isRoad);
+const TOWN = Object.keys(LOCATIONS).filter(k => !LOCATIONS[k].isRoad && !LOCATIONS[k].isForest);
 
 function routeFrom(start) {
   const dist = { [start]: 0 }, prev = {}, done = new Set();
@@ -311,6 +338,9 @@ function routeFrom(start) {
   if (LOCATIONS[start].isRoad) {
     const half = LOCATIONS[start].miles / 2;
     LOCATIONS[start].ends.forEach(end => edges.push([start, end, half, LOCATIONS[start].name]));
+  }
+  if (LOCATIONS[start].isForest) {
+    LOCATIONS[start].roads.forEach(r => LOCATIONS[r].ends.forEach(end => edges.push([start, end, LOCATIONS[r].miles / 2 + 0.2, LOCATIONS[r].name])));
   }
   while (true) {
     const here = Object.keys(dist).filter(k => !done.has(k)).sort((a, b) => dist[a] - dist[b])[0];
