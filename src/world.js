@@ -400,3 +400,16 @@ const SURVIVOR_GIFTS = {
   al: ['bike', `Al wheels a mountain bike out of the back room. "Last one I had. Wasn't going to sell it anyway." (You now have a MOUNTAIN BIKE!)`],
   joe: ['motorcycle', `Joe pulls a tarp off an old dirt bike behind the ranger shed. "Still runs. Mostly." (You now have a MOTORCYCLE!)`]
 };
+
+const ESCAPE_ITEMS = {
+  power: { name: 'Power Cell', icon: '⚡', found: 'a glowing POWER CELL, the kind that powers big machines' },
+  key: { name: 'Master Key', icon: '🔑', found: 'a heavy MASTER KEY on a red tag that says "EMERGENCY USE ONLY"' },
+  codes: { name: 'Escape Codes', icon: '📋', found: 'a folder of ESCAPE CODES, stamped TOP SECRET' }
+};
+
+const ESCAPES = {
+  heli: { name: 'Helicopter', icon: '🚁', words: ['helicopter', 'helicoptor', 'helecopter', 'heli', 'chopper'], seen: 'Through the trees you can see it: a HELICOPTER, sitting in a small clearing.',
+    win: '{name} pushes through the trees into a small clearing, and there it is: the helicopter. {name} slams in the ⚡ Power Cell, turns the 🔑 Master Key, and types in the 📋 Escape Codes. The rotors start to spin... faster... FASTER! Zombies pour out of the trees, but the helicopter lifts off just as they reach it. {name} flies over the town, over the hills, and far away from the zombies.' },
+  subway: { name: 'Subway', icon: '🚇', words: ['subway', 'metro', 'train', 'underground', 'tunnel', 'hatch'], seen: 'Under a fallen tree you spot a rusty metal hatch with a faded sign: SUBWAY - EMERGENCY EXIT.',
+    win: '{name} pries open the hatch under the fallen tree and climbs down into the dark. A single subway train waits on the tracks. {name} plugs in the ⚡ Power Cell, unlocks the cab with the 🔑 Master Key, and enters the 📋 Escape Codes. The lights flicker on and the train lurches forward as zombies flood down the stairs behind it. {name} rides the train through the tunnel, out of town, all the way to safety.' }
+};

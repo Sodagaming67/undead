@@ -24,6 +24,12 @@ class GameScene extends Phaser.Scene {
     }));
     this.round = 1;
     this.turn = 0;
+    this.players.forEach(p => { p.escapeItems = []; });
+    const forests = Phaser.Utils.Array.Shuffle(Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest));
+    this.escapes = { heli: forests[0], subway: forests[1] };
+    this.escapeAt = {};
+    this.escapedWinner = null;
+    this.placeEscapeItems();
     this.zombies = {};
     for (const k in LOCATIONS) this.zombies[k] = normalZombies(k);
   }
@@ -105,6 +111,9 @@ class GameScene extends Phaser.Scene {
       const woods = Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest && LOCATIONS[k].roads.includes(p.at)).map(k => LOCATIONS[k].name);
       if (woods.length) lines.push(`     🌲 woods beside the road: ${woods.join(', ')} (⚠ deadly)`);
     }
+    lines.push('', `ESCAPE:  🚁 ${LOCATIONS[this.escapes.heli].name}   🚇 ${LOCATIONS[this.escapes.subway].name}`,
+      '  need: ' + Object.keys(ESCAPE_ITEMS).map(k => `${ESCAPE_ITEMS[k].icon}${p.escapeItems.includes(k) ? '✓' : ' at ' + LOCATIONS[this.escapeAt[k]].name}`).join('  '),
+      '  (escape items move every round)');
     lines.push('', loc.isForest ? 'IN THESE WOODS  (🔎 = stuff to find):' : loc.isRoad ? 'ON THIS ROAD  (🔎 = stuff to find):' : 'STORES & ROOMS HERE  (🔎 = stuff to find):');
     for (const k in loc.spots) {
       lines.push(`  ${k === p.spot ? '▶' : '•'} ${loc.spots[k].name}${this.itemsLeft(p, p.at, k) > 0 ? '  🔎' : ''}`);
@@ -116,7 +125,8 @@ class GameScene extends Phaser.Scene {
     lines.push('', `ROADS TO OTHER PLACES  (risk ${fast ? 'by ' + VEHICLES[fast].name.toLowerCase() : 'on foot'}):`);
     TOWN.filter(k => k !== p.at).sort((a, b) => dist[a] - dist[b]).forEach(k => {
       const miles = Math.round(dist[k] * 10) / 10;
-      lines.push(`  ${LOCATIONS[k].name}: ${miles} mi, ${riskLabel(miles * factor)}${k === p.cameFrom ? ' + zombies on your trail' : ''}`);
+      const here = Object.keys(ESCAPE_ITEMS).filter(i => this.escapeAt[i] === k && !p.escapeItems.includes(i)).map(i => ' ' + ESCAPE_ITEMS[i].icon).join('');
+      lines.push(`  ${LOCATIONS[k].name}${here}: ${miles} mi, ${riskLabel(miles * factor)}${k === p.cameFrom ? ' + zombies on your trail' : ''}`);
     });
 
     lines.push('', 'VEHICLES:');
@@ -198,8 +208,17 @@ class GameScene extends Phaser.Scene {
     this.headerText.setText(p.freeUsed ? `Still ${p.name}'s turn` : `What will ${p.name} do?`).setColor(p.color);
     this.recapText.setText(p.recap ? `Last time: ${p.recap}` : `Pass the keyboard to ${p.name}!`);
     this.storyText.setY(this.recapText.y + this.recapText.height + 10);
-    const crowd = this.zombieLine(p.at);
-    this.storyText.setText(this.turnStory + (crowd ? '\n\n' + crowd : '')).setColor('#ffffff');
+    const extra = [this.zombieLine(p.at)];
+    const esc = this.escapeHere(p);
+    if (esc) {
+      const missing = this.missingItems(p);
+      extra.push(`${ESCAPES[esc].icon} ${ESCAPES[esc].seen} ` + (missing.length
+        ? `It won't start without all 3 escape items. Still needed: ${missing.map(k => ESCAPE_ITEMS[k].icon + ' ' + ESCAPE_ITEMS[k].name).join(', ')}.`
+        : `${p.name} has all 3 escape items! Type something like "${esc === 'heli' ? 'fly the helicopter' : 'take the subway'}" to ESCAPE!`));
+    }
+    const item = this.escapeItemAt(p.at);
+    if (item && !p.escapeItems.includes(item)) extra.push(`📦 The ${ESCAPE_ITEMS[item].icon} ${ESCAPE_ITEMS[item].name} is somewhere at ${LOCATIONS[p.at].name} this round! Search to find it.`);
+    this.storyText.setText([this.turnStory, ...extra.filter(Boolean)].join('\n\n')).setColor('#ffffff');
     this.inputText.setColor('#88ff88');
     const ride = p.vehicles.length ? `\nYou have: ${p.vehicles.map(v => VEHICLES[v].icon + ' ' + VEHICLES[v].name).join(', ')}. You can use it to travel anywhere!` : '';
     const free = `\nSmall actions (talking to people, team orders, searching the street for a vehicle) are free: ${MAX_FREE - p.freeUsed} left this turn.`;
@@ -309,6 +328,17 @@ class GameScene extends Phaser.Scene {
         return `${t.name} is back from the dead`;
       case 'god': t.god = !t.god; t.curse = false; return `God mode ${t.god ? 'on' : 'off'} for ${t.name}`;
       case 'curse': t.curse = true; t.god = false; return `${t.name}'s next real move will go badly`;
+      case 'giveEscape':
+        if (arg === 'all') t.escapeItems = Object.keys(ESCAPE_ITEMS);
+        else if (!t.escapeItems.includes(arg)) t.escapeItems.push(arg);
+        return `Gave ${t.name} ${arg === 'all' ? 'all 3 escape items' : 'the ' + ESCAPE_ITEMS[arg].name}`;
+      case 'takeEscape': t.escapeItems = []; return `Took away ${t.name}'s escape items`;
+      case 'moveItems': this.placeEscapeItems(); return 'Escape items moved to new places';
+      case 'moveEscapes': {
+        const forests = Phaser.Utils.Array.Shuffle(Object.keys(LOCATIONS).filter(k => LOCATIONS[k].isForest));
+        this.escapes = { heli: forests[0], subway: forests[1] };
+        return `🚁 Helicopter: ${LOCATIONS[forests[0]].name}, 🚇 Subway: ${LOCATIONS[forests[1]].name}`;
+      }
       case 'give':
         if (arg === 'all') Object.keys(ITEMS).forEach(k => t.items.push(k));
         else t.items.push(arg);
@@ -342,7 +372,10 @@ class GameScene extends Phaser.Scene {
         if (t.sitOut && t === this.current) this.nextTurn();
         else if (!t.sitOut) this.checkGameEnd();
         return t.sitOut ? `${t.name} is sitting out and won't get turns` : `${t.name} is back in the game`;
-      case 'round': this.round = Math.max(1, arg); return `Now on round ${this.round}`;
+      case 'round':
+        if (Math.max(1, arg) !== this.round) this.placeEscapeItems();
+        this.round = Math.max(1, arg);
+        return `Now on round ${this.round} (escape items moved)`;
       case 'win': this.gameOver(t); return '';
       case 'zombies':
         this.zombies[t] = Phaser.Math.Clamp(Math.round(arg), 0, 999);
@@ -365,6 +398,7 @@ class GameScene extends Phaser.Scene {
       this.drawInput();
       return this.adminPanel.open();
     }
+    if (this.tryEscape()) return;
     const p = this.current;
     const loc = LOCATIONS[p.at];
     const said = ' ' + this.typed.toLowerCase().replace(/[^a-z0-9 ]/g, ' ') + ' ';
@@ -585,6 +619,17 @@ class GameScene extends Phaser.Scene {
 
     if (repeated) text = 'The zombies have seen that move before and they are starting to catch on...\n\n' + text;
     if (!free) p.recap = text.replace(/^The zombies have seen.*\n\n/, '').split(/(?<=[.!?])\s/)[0];
+    const escapeItem = this.escapeItemAt(p.at);
+    if (type === 'supplies' && result !== 'dead' && escapeItem) {
+      const e = ESCAPE_ITEMS[escapeItem];
+      if (p.escapeItems.includes(escapeItem)) {
+        text += `\n\n(${p.name} sees another ${e.icon} ${e.name} here, but already has one. You can only carry one of each escape item.)`;
+      } else {
+        p.escapeItems.push(escapeItem);
+        text += `\n\n📦 ${p.name} also found ${e.found}! ${e.icon} ${e.name} added. (Escape items: ${p.escapeItems.length}/3)`;
+        if (!this.missingItems(p).length) text += ` ${p.name} has everything needed to escape! Get to the 🚁 helicopter in ${LOCATIONS[this.escapes.heli].name} or the 🚇 subway in ${LOCATIONS[this.escapes.subway].name}!`;
+      }
+    }
     if (helpers.length && result !== 'dead') text += `\n\nHelped by: ${helpers.join(', ')}`;
 
     const look = {
@@ -640,6 +685,59 @@ class GameScene extends Phaser.Scene {
     return text;
   }
 
+  placeEscapeItems() {
+    const used = [];
+    for (const k in ESCAPE_ITEMS) {
+      this.escapeAt[k] = Phaser.Utils.Array.GetRandom(TOWN.filter(t => !used.includes(t) && t !== this.escapeAt[k]));
+      used.push(this.escapeAt[k]);
+    }
+  }
+
+  newRound() {
+    this.round++;
+    this.placeEscapeItems();
+  }
+
+  escapeHere(p) { return Object.keys(ESCAPES).find(e => this.escapes[e] === p.at) || null; }
+
+  escapeItemAt(place) { return Object.keys(ESCAPE_ITEMS).find(k => this.escapeAt[k] === place) || null; }
+
+  missingItems(p) { return Object.keys(ESCAPE_ITEMS).filter(k => !p.escapeItems.includes(k)); }
+
+  tryEscape() {
+    const p = this.current;
+    const t = ' ' + this.typed.toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+    const here = this.escapeHere(p);
+    const named = Object.keys(ESCAPES).find(e => ESCAPES[e].words.some(w => t.includes(' ' + w + ' ')));
+    const justEscape = t.includes(' escape ') && t.trim().split(' ').length <= 3;
+    if (!named && !(here && justEscape)) return false;
+    if (!here && / (call|radio|phone|signal|wave|flag|shout|yell|scream|hear|listen) /.test(t)) return false;
+
+    const which = named || here;
+    const e = ESCAPES[which];
+    const hint = msg => {
+      this.hint = msg;
+      this.typed = '';
+      this.drawInput();
+      return true;
+    };
+    if (this.escapes[which] !== p.at) {
+      return hint(`The ${e.icon} ${e.name} is hidden deep in ${LOCATIONS[this.escapes[which]].name}. ${p.name} has to get there first: run into those woods from a road next to them.`);
+    }
+    const missing = this.missingItems(p);
+    if (missing.length) {
+      const list = missing.map(k => `${ESCAPE_ITEMS[k].icon} ${ESCAPE_ITEMS[k].name} (this round at ${LOCATIONS[this.escapeAt[k]].name})`).join(', ');
+      return hint(`${p.name} found the ${e.icon} ${e.name}, but it won't start yet! Still needed: ${list}. Escape items move to new places every round.`);
+    }
+    p.escaped = which;
+    p.turns++;
+    p.recap = `${p.name} escaped by ${e.name.toLowerCase()}!`;
+    this.escapedWinner = p;
+    this.showResult(`${e.win.replaceAll('{name}', p.name)}\n\n${e.icon} ${p.name.toUpperCase()} ESCAPED! ${e.icon}`, ['ESCAPED!', '#66ffcc'], false);
+    this.footerText.setText(`${p.name} wins the game! Press ENTER to see the results`);
+    return true;
+  }
+
   canPlay(p) { return p.alive && !p.sitOut; }
 
   checkGameEnd() {
@@ -651,11 +749,12 @@ class GameScene extends Phaser.Scene {
   }
 
   nextTurn() {
+    if (this.escapedWinner) return this.gameOver(this.escapedWinner);
     if (this.checkGameEnd()) return;
     const chosen = this.nextUp && this.canPlay(this.nextUp) ? this.players.indexOf(this.nextUp) : -1;
     this.nextUp = null;
     if (chosen >= 0) {
-      if (chosen <= this.turn) this.round++;
+      if (chosen <= this.turn) this.newRound();
       this.turn = chosen;
       return this.startTurn();
     }
@@ -663,7 +762,7 @@ class GameScene extends Phaser.Scene {
       this.turn++;
       if (this.turn >= this.players.length) {
         this.turn = 0;
-        this.round++;
+        this.newRound();
       }
     } while (!this.canPlay(this.players[this.turn]));
     this.startTurn();
@@ -683,7 +782,10 @@ class GameScene extends Phaser.Scene {
     this.phase = 'over';
     this.winner = winner;
     this.drawBanner('🏁 GAME OVER 🏁', '#ffffff');
-    if (this.players.length === 1) {
+    if (winner && winner.escaped) {
+      const e = ESCAPES[winner.escaped];
+      this.headerText.setText(`${winner.name} ESCAPED by ${e.name.toLowerCase()}! ${e.icon}`).setColor('#66ffcc');
+    } else if (this.players.length === 1) {
       const p = this.players[0];
       this.headerText.setText(`${p.name} survived ${p.turns - 1} turns!`).setColor('#ffcc33');
     } else {
@@ -694,7 +796,7 @@ class GameScene extends Phaser.Scene {
     const pad = (s, n) => String(s).slice(0, n).padEnd(n);
     const lines = [pad('#', 3) + pad('NAME', 12) + pad('TURNS', 7) + pad('RESULT', 14) + pad('ITEMS', 7) + pad('FRIENDS', 9) + pad('MILES', 7) + 'SCORE'];
     ranked.forEach((p, i) => {
-      lines.push(pad(i + 1, 3) + pad(p.name, 12) + pad(p.turns, 7) + pad(p.sitOut && p.alive ? 'SAT OUT' : p.alive ? 'SURVIVED' : `died rnd ${p.diedRound}`, 14) +
+      lines.push(pad(i + 1, 3) + pad(p.name, 12) + pad(p.turns, 7) + pad(p.escaped ? 'ESCAPED ' + ESCAPES[p.escaped].icon : p.sitOut && p.alive ? 'SAT OUT' : p.alive ? 'SURVIVED' : `died rnd ${p.diedRound}`, 14) +
         pad(p.stats.itemsFound, 7) + pad(p.stats.recruited, 9) + pad(p.stats.miles, 7) + this.score(p, winner));
     });
     lines.push('');
@@ -720,7 +822,7 @@ class GameScene extends Phaser.Scene {
   statRows(ranked, winner) {
     const date = new Date().toLocaleString();
     return ranked.map((p, i) => [
-      date, this.players.length, i + 1, p.name, p.sitOut && p.alive ? 'Sat out' : p.alive ? 'Survived' : p.heartbroken ? 'Died of heartbreak' : 'Died', p.alive ? '' : p.diedRound, p.turns, p.stats.freeActions,
+      date, this.players.length, i + 1, p.name, p.escaped ? 'Escaped by ' + ESCAPES[p.escaped].name.toLowerCase() : p.sitOut && p.alive ? 'Sat out' : p.alive ? 'Survived' : p.heartbroken ? 'Died of heartbreak' : 'Died', p.alive ? '' : p.diedRound, p.turns, p.stats.freeActions,
       p.alive ? p.hearts : 0, p.stats.visited.length, p.stats.miles, p.stats.itemsFound, p.stats.vehiclesFound, p.stats.recruited,
       p.stats.friendsLost, p.stats.fightsWon, p.stats.timesHurt, p.alive ? '' : p.death, this.score(p, winner)
     ]);

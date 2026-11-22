@@ -266,6 +266,8 @@ class AdminPanel {
     if (p.sitOut) pills.append(this.pill('Sitting out', 'violet'));
     if (p.god) pills.append(this.pill('God mode', 'warn'));
     if (p.curse) pills.append(this.pill('Cursed', 'violet'));
+    if (p.escaped) pills.append(this.pill('Escaped ' + ESCAPES[p.escaped].icon, 'accent'));
+    else if (p.escapeItems.length) pills.append(this.pill('Escape ' + p.escapeItems.map(k => ESCAPE_ITEMS[k].icon).join('') + ` ${p.escapeItems.length}/3`, p.escapeItems.length === 3 ? 'accent' : ''));
     head.append(name, pills);
 
     const meta = this.el('div', 'ad-meta');
@@ -316,7 +318,8 @@ class AdminPanel {
       form('Teleport', Object.keys(LOCATIONS).filter(k => k !== p.at && !LOCATIONS[k].isRoad).map(k => [k, (LOCATIONS[k].isForest ? '🌲 ' : '') + LOCATIONS[k].name]), 'teleport'),
       form('Give', [['all', '⭐ Every item'], ...Object.keys(ITEMS).map(k => [k, ITEMS[k].short]).sort(byName)], 'give'),
       form('Give', [['all', '⭐ Every vehicle'], ...Object.keys(VEHICLES).map(k => [k, VEHICLES[k].icon + ' ' + VEHICLES[k].name])], 'vehicle'),
-      form('Recruit', Object.keys(SURVIVORS).filter(k => !p.team.includes(k)).map(k => [k, SURVIVORS[k].name]), 'recruit')
+      form('Recruit', Object.keys(SURVIVORS).filter(k => !p.team.includes(k)).map(k => [k, SURVIVORS[k].name]), 'recruit'),
+      form('Give', [['all', '⭐ All 3 escape items'], ...Object.keys(ESCAPE_ITEMS).filter(k => !p.escapeItems.includes(k)).map(k => [k, ESCAPE_ITEMS[k].icon + ' ' + ESCAPE_ITEMS[k].name])], 'giveEscape')
     );
 
     card.append(head, meta, actions, turns, forms);
@@ -388,7 +391,11 @@ class AdminPanel {
       const sel = k === this.selected;
       const g = this.svg('g', { class: 'place' }, map);
       g.addEventListener('click', select(k));
-      this.svgText(g, x, y - 3, '🌲', { 'font-size': 14 });
+      const esc = Object.keys(ESCAPES).find(e => s.escapes[e] === k);
+      if (esc) {
+        this.svg('circle', { cx: x, cy: y - 8, r: 13, fill: '#0b0f14', stroke: '#66ffcc', 'stroke-width': 2 }, g);
+        this.svgText(g, x, y - 3, ESCAPES[esc].icon, { 'font-size': 14 });
+      } else this.svgText(g, x, y - 3, '🌲', { 'font-size': 14 });
       this.svg('rect', { x: x - 17, y: y + 1, width: 34, height: 16, rx: 8, fill: sel ? '#2bb3a3' : '#0b0f14', stroke: zombieColor(n, normalZombies(k)), 'stroke-width': 1.5 }, g);
       this.svgText(g, x, y + 13, String(n), { 'font-size': 10.5, 'font-weight': 700, fill: sel ? '#062b27' : '#e8eaed' });
       this.svgText(g, x, y + (k === 'forest_pines' ? 27 : 30), LOCATIONS[k].name, { 'font-size': 10, 'font-weight': 600, 'font-style': 'italic', fill: '#69db7c', stroke: '#0b0f14', 'stroke-width': 3, 'paint-order': 'stroke' });
@@ -405,6 +412,11 @@ class AdminPanel {
       this.svg('circle', { cx: x, cy: y, r: 23, fill: color, 'fill-opacity': 0.22 + Math.min(0.5, n / 200), stroke: color, 'stroke-width': 2, class: 'node' }, g);
       this.svgText(g, x, y - 2, '🧟', { 'font-size': 12 });
       this.svgText(g, x, y + 12, String(n), { 'font-size': 12, 'font-weight': 700, fill: '#ffffff' });
+      const item = s.escapeItemAt(k);
+      if (item) {
+        this.svg('circle', { cx: x + 22, cy: y - 18, r: 10, fill: '#0b0f14', stroke: '#66ffcc', 'stroke-width': 1.5 }, g);
+        this.svgText(g, x + 22, y - 14, ESCAPE_ITEMS[item].icon, { 'font-size': 11 });
+      }
       const [dx, dy, anchor] = MAP_LABEL[k];
       this.svgText(g, x + dx, y + dy, LOCATIONS[k].name, { 'text-anchor': anchor, 'font-size': 11, 'font-weight': 600, fill: '#9aa4b2', stroke: '#0b0f14', 'stroke-width': 3, 'paint-order': 'stroke' });
     });
@@ -543,7 +555,20 @@ class AdminPanel {
       s.refreshAfterAdmin();
     }), hint);
 
-    side.append(game, owner);
+    const escape = this.el('section', 'ad-panel');
+    const escHead = this.el('div', 'ad-panel-head');
+    escHead.append(this.el('h2', '', 'Escape'), this.el('span', 'ad-sub', 'First out wins'));
+    const where = this.el('div', 'ad-stack');
+    Object.keys(ESCAPES).forEach(e => where.append(this.el('div', 'ad-here', `${ESCAPES[e].icon} ${ESCAPES[e].name}: ${LOCATIONS[s.escapes[e]].name}`)));
+    Object.keys(ESCAPE_ITEMS).forEach(k => where.append(this.el('div', 'ad-here', `${ESCAPE_ITEMS[k].icon} ${ESCAPE_ITEMS[k].name}: ${LOCATIONS[s.escapeAt[k]].name}`)));
+    const escButtons = this.el('div', 'ad-stack');
+    escButtons.style.marginTop = '12px';
+    escButtons.append(
+      this.button('Move escape items now', 'secondary wide', () => this.act(() => s.adminDo('moveItems'))),
+      this.button('Move helicopter & subway', 'ghost wide', () => this.act(() => s.adminDo('moveEscapes')))
+    );
+    escape.append(escHead, where, escButtons, this.el('p', 'ad-hint', 'Items move by themselves at the start of every round.'));
+    side.append(game, escape, owner);
     return side;
   }
 }
