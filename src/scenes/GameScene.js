@@ -9,6 +9,8 @@ const ZOMBIE_START = { house: 6, school: 25, park: 15, gas: 10, mall: 40, sports
 const ROAD_ZOMBIES = 12;
 const FOREST_ZOMBIES = 50;
 const OVERRUN_DANGER = 45;
+const STORY_VIEW = { top: 76, bottom: 664 };
+const PANEL_VIEW = { top: 80, bottom: 676 };
 const normalZombies = k => ZOMBIE_START[k] ?? (LOCATIONS[k].isForest ? FOREST_ZOMBIES : ROAD_ZOMBIES);
 
 class GameScene extends Phaser.Scene {
@@ -78,6 +80,20 @@ class GameScene extends Phaser.Scene {
     this.panelText = this.add.text(728, 88, '', { fontSize: '13px', fill: '#dddddd', wordWrap: { width: 366 }, lineSpacing: 2 });
 
     this.footerText = this.add.text(W / 2, 710, '', { fontSize: '13px', fill: '#888888', align: 'center', wordWrap: { width: W - 40 } }).setOrigin(0.5);
+
+    this.storyBox = this.add.container(0, 0, [this.headerText, this.recapText, this.storyText, this.inputText, this.hintText]);
+    this.storyBox.setMask(this.make.graphics().fillRect(0, STORY_VIEW.top, 712, STORY_VIEW.bottom - STORY_VIEW.top).createGeometryMask());
+    this.panelText.setMask(this.make.graphics().fillRect(715, PANEL_VIEW.top, 390, PANEL_VIEW.bottom - PANEL_VIEW.top).createGeometryMask());
+    this.storyScroll = 0;
+    this.panelScroll = 0;
+    this.storyBar = this.add.rectangle(705, STORY_VIEW.top, 4, 10, 0x88ff88, 0.6).setOrigin(0.5, 0);
+    this.panelBar = this.add.rectangle(1098, PANEL_VIEW.top, 4, 10, 0x88ff88, 0.6).setOrigin(0.5, 0);
+    this.storyMore = this.add.text(698, STORY_VIEW.bottom - 18, '▼ more: scroll or press ↓', { fontSize: '12px', fill: '#88ff88', backgroundColor: '#101810', padding: { x: 6, y: 1 } }).setOrigin(1, 0);
+    this.panelMore = this.add.text(910, PANEL_VIEW.bottom - 18, '▼ scroll for more', { fontSize: '12px', fill: '#88ff88', backgroundColor: '#1c2a1c', padding: { x: 6, y: 1 } }).setOrigin(0.5, 0);
+    this.input.on('wheel', (pointer, objects, dx, dy) => {
+      if (this.adminPanel.isOpen) return;
+      this.scrollBy(pointer.worldX > 712 ? 'panel' : 'story', dy * 0.5);
+    });
 
     this.typed = '';
     this.hint = '';
@@ -172,6 +188,7 @@ class GameScene extends Phaser.Scene {
     }
     if (survivor) lines.push('', `SURVIVOR HERE: ${SURVIVORS[survivor].name} (talk to them!)`);
     this.panelText.setText(lines.join('\n'));
+    this.scrollBy('panel', 0);
   }
 
   startTurn() {
@@ -234,6 +251,8 @@ class GameScene extends Phaser.Scene {
   showTurn() {
     const p = this.current;
     this.phase = 'typing';
+    this.storyScroll = 0;
+    this.panelScroll = 0;
     this.typed = '';
     this.hint = '';
     this.drawBanner(`🎮 ${p.name.toUpperCase()}'S TURN 🎮`, p.color);
@@ -271,15 +290,52 @@ class GameScene extends Phaser.Scene {
   }
 
   drawInput() {
-    if (this.phase !== 'typing') return;
+    if (this.phase !== 'typing') return this.scrollBy('story', 0);
     this.inputText.setY(this.storyText.y + this.storyText.height + 22);
     this.inputText.setText(`What does ${this.current.name} do?\n> ` + this.typed + (this.cursorOn ? (this.admin ? '▮' : '_') : ''));
     this.hintText.setY(this.inputText.y + this.inputText.height + 10);
     this.hintText.setText(this.hint);
+    this.scrollBy('story', 0);
+  }
+
+  storyBottom() {
+    return Math.max(...[this.storyText, this.inputText, this.hintText].filter(t => t.text).map(t => t.y + t.height), this.headerText.y + this.headerText.height) + 12;
+  }
+
+  scrollBy(which, amount) {
+    const story = which === 'story';
+    const view = story ? STORY_VIEW : PANEL_VIEW;
+    const height = view.bottom - view.top;
+    const total = story ? this.storyBottom() - view.top : this.panelText.height + 16;
+    const max = Math.max(0, total - height);
+    const pos = Phaser.Math.Clamp((story ? this.storyScroll : this.panelScroll) + amount, 0, max);
+    const bar = story ? this.storyBar : this.panelBar;
+    if (story) {
+      this.storyScroll = pos;
+      this.storyBox.y = -pos;
+    } else {
+      this.panelScroll = pos;
+      this.panelText.y = 88 - pos;
+    }
+    bar.setVisible(max > 0);
+    if (max > 0) {
+      bar.height = Math.max(20, height * height / total);
+      bar.y = view.top + (height - bar.height) * (pos / max);
+    }
+    (story ? this.storyMore : this.panelMore).setVisible(max > 0 && pos < max - 2);
+  }
+
+  resetScroll() {
+    this.storyScroll = 0;
+    this.scrollBy('story', 0);
   }
 
   onKey(e) {
-    if (e.repeat || this.adminPanel.isOpen) return;
+    if (this.adminPanel.isOpen) return;
+    const scroll = { ArrowUp: -40, ArrowDown: 40, PageUp: -300, PageDown: 300 }[e.key];
+    if (scroll) return this.scrollBy('story', scroll);
+    if (e.repeat) return;
+    if (this.phase === 'typing' && e.key.length === 1) this.storyScroll = 1e6;
     if (this.phase === 'typing') {
       if (e.key === 'Backspace') this.typed = this.typed.slice(0, -1);
       else if (e.key === 'Enter') { if (this.typed.trim()) return this.resolve(); }
@@ -330,6 +386,7 @@ class GameScene extends Phaser.Scene {
   showResult(text, look, free) {
     const p = this.current;
     this.phase = free ? 'free' : 'result';
+    this.storyScroll = 0;
     this.headerText.setText(look[0]).setColor(look[1]);
     this.recapText.setText('');
     this.storyText.setY(146);
@@ -342,6 +399,7 @@ class GameScene extends Phaser.Scene {
       : 'Press ENTER to continue');
     this.drawStatus();
     this.drawPanel();
+    this.resetScroll();
   }
 
   giveOrder(parsed) {
@@ -997,6 +1055,7 @@ class GameScene extends Phaser.Scene {
     this.hintText.setText('');
     this.panelText.setText('GAME OVER\n\nThanks for playing UNDEAD INC!\n\nPress S to save a spreadsheet of everyone\'s stats (this game and every earlier game on this computer).\n\nIt goes to your Downloads folder as undead-inc-results.csv. Open it with Excel or Google Sheets.');
     this.footerText.setText('S = save spreadsheet     ENTER = play again with the same cousins     ESC = main menu');
+    this.resetScroll();
     this.drawStatus();
   }
 

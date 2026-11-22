@@ -225,3 +225,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** Overrun: at the start of every round, one random main place (a different one each round, and never Your House in round 1) becomes ☠ OVERRUN. Every move there gets +45 danger, and leaving it gets +20 more. In testing, going in hurt or killed 90% of players, and leaving killed 34%. Each player's first turn of a round says "☠ ROUND 3: Riverside Mall has been OVERRUN by zombies! Stay away from it this round." The road list on the right marks it "☠ OVERRUN, EXTREME risk", and being there shows a big warning in the story and panel. Trying to travel there gives a free warning first ("type it again and press ENTER"), and the second try goes. If the admin sets that place to 0 zombies, it isn't dangerous. The admin map shows a red ☠ on it, and the Game box shows the overrun place with a dropdown + "Overrun" button to pick a different one. Vehicle fix: finding a vehicle while traveling from a road used to stop you on the same road you started on, so you went nowhere and got the "stayed on the road" danger. Now you stop on the next road along your trip ("makes it past Lincoln Middle School, and partway down Main Street…"). If your destination is at the end of your current road, you just arrive. Finding a vehicle with "search the street" no longer moves you onto a road. You stay where you are, with the vehicle parked outside.
 **Files changed:** `src/scenes/GameScene.js`, `src/admin.js`
 **Design note:** → [Session 1 — Overrun Areas and Vehicle Fix](09-design-decisions.md)
+
+### #25 — Scrolling on the Game Screen
+
+**Asked:** "Make it so I can scroll up and down."
+**Status:** ✓ Done
+**What was built:** The story area (left) and the side panel (right) now scroll separately. Use the mouse wheel over either one, or ↑ / ↓ (and Page Up / Page Down) for the story. When there's more to see, a thin green scrollbar appears, with "▼ more: scroll or press ↓" in the story or "▼ scroll for more" in the panel. Each new turn or result starts at the top. Typing jumps the story to the bottom so you can always see what you're typing. While the admin panel is open, the game doesn't scroll (the admin panel has its own scrolling).
+**Files changed:** `src/scenes/GameScene.js`
+**Design note:** → [Session 1 — Scrolling](09-design-decisions.md)
