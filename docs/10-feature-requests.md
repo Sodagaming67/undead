@@ -257,3 +257,11 @@ Each entry links to [09-design-decisions.md](09-design-decisions.md) for the ful
 **What was built:** Every cousin now has a count of zombies killed and zombies hurt for the game. Winning a fight against regular zombies kills 1–3 (more likely with a weapon), and a fight that goes badly hurts 1. Hitting a boss hurts 1, and beating a boss kills 1. A trap that works hurts 2. Results show the change, for example "(🧟 +3 zombies killed)", and the side panel shows "🧟 ZOMBIES: 5 killed, 2 hurt". The game over leaderboard has new KILLED and HURT columns (in a slightly smaller font so everything fits) and a "🧟 Top zombie slayer" line. The spreadsheet has new "Zombies Killed" and "Zombies Hurt" columns at the end, so older games in the spreadsheet still line up. Admin player cards show the counts too. Also fixed: the game over screen's side panel no longer wrongly says "scroll for more".
 **Files changed:** `src/scenes/GameScene.js`, `src/admin.js`
 **Design note:** → [Session 1 — Zombie Kill Counts](09-design-decisions.md)
+
+### #29 — Play the Game on GitHub Pages
+
+**Asked:** "I need to be able to view my game in GitHub Pages, like my other games."
+**Status:** ✓ Done
+**What was built:** A GitHub Actions workflow that publishes the game to GitHub Pages every time `main` is pushed to GitHub (or when run by hand from the Actions tab). The game will be at https://sodagaming67.github.io/undead/.
+**Files changed:** `.github/workflows/pages.yml`
+**Design note:** → [Session 1 — GitHub Pages](09-design-decisions.md)

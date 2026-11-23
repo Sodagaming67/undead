@@ -257,3 +257,10 @@ See [10-feature-requests.md](10-feature-requests.md) for a quick numbered index 
 **What was built:** `stats.zombiesKilled` and `stats.zombiesHurt`. These are counted in `resolve` (regular fights, using the rolled result before boss bites), `bossTurn` (boss hits and defeats) and `springTrap` (traps that work). There are new leaderboard columns, and two new CSV columns are added after Score.
 **Why this way:** The game has no individual zombies, so the counts come from the actions that clearly hurt or kill them. Adding the CSV columns at the end keeps old saved rows (which don't have them) lined up with the header.
 **What was ruled out:** Adding kills to the score (that would change how earlier games compare in the spreadsheet).
+
+### GitHub Pages
+
+**What was asked:** Put the game on GitHub Pages like WorldHopper.
+**What was built:** `.github/workflows/pages.yml`, copied from WorldHopper's, but it uploads the project folder as-is instead of running `npm ci` and `npm run build`.
+**Why this way:** This game has no build step — `index.html` loads Phaser from a CDN and the `src/` files directly, and all paths are relative, so it works under the `/undead/` address without changes.
+**What was ruled out:** Adding npm and a bundler just to match WorldHopper (extra setup for no benefit). Publishing from a `gh-pages` branch (the Actions way matches the other games).
